@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.yandex.maps.mobile)
     implementation(libs.play.services.location)
+    implementation(libs.androidx.compose.ui.text.google.fonts)
     kapt(libs.androidx.room.compiler)
     kapt(libs.dagger.compiler)
     testImplementation(libs.junit)
