@@ -1,11 +1,12 @@
+import com.android.build.api.dsl.ApplicationExtension
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.kotlin.kapt")
 }
-
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val yandexMapsApiKey: String = run {
     val propsFile = rootProject.file("local.properties")
@@ -20,13 +21,9 @@ val yandexMapsApiKey: String = run {
     }
 }
 
-android {
+extensions.configure<ApplicationExtension>("android") {
     namespace = "com.topit.ecotrace"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.topit.ecotrace"
@@ -55,6 +52,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
     }
 }
 
@@ -87,10 +90,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-}
-
-tasks.withType<KotlinCompile>().configureEach {
-    kotlinOptions {
-        jvmTarget = "11"
-    }
 }
