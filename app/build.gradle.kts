@@ -5,6 +5,8 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 val yandexMapsApiKey: String = run {
     val propsFile = rootProject.file("local.properties")
     if (!propsFile.exists()) {
@@ -85,4 +87,10 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
 }
