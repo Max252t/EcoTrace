@@ -128,6 +128,7 @@ fun EcoTraceAppRoot() {
                 val lon = back.arguments?.getString("lon")?.toDoubleOrNull()
                 AddReportScreen(
                     contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
                     onPickLocation = { navController.navigate(Screen.LocationPicker.route) },
                     initialLat = lat,
                     initialLon = lon,
@@ -139,14 +140,21 @@ fun EcoTraceAppRoot() {
             ) { back ->
                 ReportDetailsScreen(
                     contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
                     reportId = back.arguments?.getString("reportId").orEmpty(),
                 )
             }
             composable(Screen.Filters.route) {
-                FiltersBottomSheet(contentPadding = paddingValues)
+                FiltersBottomSheet(
+                    contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
+                )
             }
             composable(Screen.LocationPicker.route) {
-                LocationPickerScreen(contentPadding = paddingValues)
+                LocationPickerScreen(
+                    contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
+                )
             }
         }
     }
