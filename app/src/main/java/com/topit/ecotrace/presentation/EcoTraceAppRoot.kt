@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -48,9 +49,12 @@ private val hiddenNavRoutes = setOf(
     Screen.AddReport.route.substringBefore("?"),
     Screen.ReportDetails.route.substringBefore("/"),
     Screen.Filters.route,
-    Screen.LocationPicker.route,
+    Screen.LocationPicker.route.substringBefore("?"),
     Screen.Settings.route,
 )
+
+private const val DEFAULT_LAT = 55.751244
+private const val DEFAULT_LON = 37.618423
 
 @Composable
 fun EcoTraceAppRoot() {
@@ -120,11 +124,10 @@ fun EcoTraceAppRoot() {
                 )
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(
-                    contentPadding = paddingValues,
-                    onBack = { navController.navigateUp() },
-                )
+                SettingsScreen(contentPadding = paddingValues, onBack = { navController.navigateUp() })
             }
+
+            // ── AddReport: reads picked location from savedStateHandle ─────
             composable(
                 route = Screen.AddReport.route,
                 arguments = listOf(
@@ -132,14 +135,30 @@ fun EcoTraceAppRoot() {
                     navArgument("lon") { type = NavType.StringType; nullable = true; defaultValue = "" },
                 ),
             ) { back ->
+                val initLat = back.arguments?.getString("lat")?.toDoubleOrNull() ?: DEFAULT_LAT
+                val initLon = back.arguments?.getString("lon")?.toDoubleOrNull() ?: DEFAULT_LON
+
+                // Updated by LocationPickerScreen via previousBackStackEntry.savedStateHandle
+                val pickedLat by back.savedStateHandle
+                    .getStateFlow("picked_lat", initLat)
+                    .collectAsStateWithLifecycle()
+                val pickedLon by back.savedStateHandle
+                    .getStateFlow("picked_lon", initLon)
+                    .collectAsStateWithLifecycle()
+
                 AddReportScreen(
                     contentPadding = paddingValues,
                     onBack = { navController.navigateUp() },
-                    onPickLocation = { navController.navigate(Screen.LocationPicker.route) },
-                    initialLat = back.arguments?.getString("lat")?.toDoubleOrNull(),
-                    initialLon = back.arguments?.getString("lon")?.toDoubleOrNull(),
+                    onPickLocation = { currentLat, currentLon ->
+                        navController.navigate(
+                            Screen.LocationPicker.createRoute(currentLat, currentLon)
+                        )
+                    },
+                    currentLat = pickedLat,
+                    currentLon = pickedLon,
                 )
             }
+
             composable(
                 route = Screen.ReportDetails.route,
                 arguments = listOf(navArgument("reportId") { type = NavType.StringType }),
@@ -153,8 +172,29 @@ fun EcoTraceAppRoot() {
             composable(Screen.Filters.route) {
                 FiltersBottomSheet(contentPadding = paddingValues, onBack = { navController.navigateUp() })
             }
-            composable(Screen.LocationPicker.route) {
-                LocationPickerScreen(contentPadding = paddingValues, onBack = { navController.navigateUp() })
+
+            // ── LocationPicker: saves result to AddReport's savedStateHandle ─
+            composable(
+                route = Screen.LocationPicker.route,
+                arguments = listOf(
+                    navArgument("lat") { type = NavType.StringType; nullable = true; defaultValue = "" },
+                    navArgument("lon") { type = NavType.StringType; nullable = true; defaultValue = "" },
+                ),
+            ) { back ->
+                val initLat = back.arguments?.getString("lat")?.toDoubleOrNull() ?: DEFAULT_LAT
+                val initLon = back.arguments?.getString("lon")?.toDoubleOrNull() ?: DEFAULT_LON
+
+                LocationPickerScreen(
+                    contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
+                    initialLat = initLat,
+                    initialLon = initLon,
+                    onConfirm = { lat, lon ->
+                        navController.previousBackStackEntry?.savedStateHandle?.set("picked_lat", lat)
+                        navController.previousBackStackEntry?.savedStateHandle?.set("picked_lon", lon)
+                        navController.popBackStack()
+                    },
+                )
             }
         }
     }

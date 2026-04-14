@@ -17,6 +17,8 @@ sealed class Screen(val route: String, val title: String) {
         fun createRoute(reportId: String): String = "report_details/$reportId"
     }
     data object Filters : Screen("filters", "Фильтры")
-    data object LocationPicker : Screen("location_picker", "Выбор точки")
+    data object LocationPicker : Screen("location_picker?lat={lat}&lon={lon}", "Выбор точки") {
+        fun createRoute(lat: Double, lon: Double): String = "location_picker?lat=$lat&lon=$lon"
+    }
     data object Settings : Screen("settings", "Настройки")
 }
