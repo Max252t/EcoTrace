@@ -64,7 +64,6 @@ private const val DEFAULT_LON = 37.618423
 @Composable
 fun EcoTraceAppRoot() {
     val navController = rememberNavController()
-    // MapViewModel lives here so FiltersBottomSheet can call updateFilter
     val mapViewModel: MapViewModel = daggerViewModel()
     val mapFilter by mapViewModel.filter.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -150,7 +149,6 @@ fun EcoTraceAppRoot() {
                 val initLat = back.arguments?.getString("lat")?.toDoubleOrNull() ?: DEFAULT_LAT
                 val initLon = back.arguments?.getString("lon")?.toDoubleOrNull() ?: DEFAULT_LON
 
-                // Updated by LocationPickerScreen via previousBackStackEntry.savedStateHandle
                 val pickedLat by back.savedStateHandle
                     .getStateFlow("picked_lat", initLat)
                     .collectAsStateWithLifecycle()
@@ -193,7 +191,6 @@ fun EcoTraceAppRoot() {
                 )
             }
 
-            // ── LocationPicker: saves result to AddReport's savedStateHandle ─
             composable(
                 route = Screen.LocationPicker.route,
                 arguments = listOf(
