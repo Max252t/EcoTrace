@@ -14,6 +14,7 @@ data class Report(
     val imageUri: String? = null,
     val authorId: String,
     val createdAt: Instant = Instant.now(),
+    val synced: Boolean = false,
 )
 
 enum class ProblemType {

@@ -18,6 +18,7 @@ fun ReportEntity.toDomain(): Report {
         imageUri = imageUri,
         authorId = authorId,
         createdAt = Instant.ofEpochSecond(createdAtEpochSeconds),
+        synced = synced,
     )
 }
 

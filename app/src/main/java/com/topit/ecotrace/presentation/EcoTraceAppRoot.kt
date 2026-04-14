@@ -27,6 +27,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.topit.ecotrace.domain.model.ProblemType
+import com.topit.ecotrace.domain.model.ReportFilter
+import com.topit.ecotrace.domain.model.ReportStatus
 import com.topit.ecotrace.presentation.navigation.Screen
 import com.topit.ecotrace.presentation.screens.AddReportScreen
 import com.topit.ecotrace.presentation.screens.FiltersBottomSheet
@@ -36,6 +39,8 @@ import com.topit.ecotrace.presentation.screens.MyReportsScreen
 import com.topit.ecotrace.presentation.screens.ProfileScreen
 import com.topit.ecotrace.presentation.screens.ReportDetailsScreen
 import com.topit.ecotrace.presentation.screens.SettingsScreen
+import com.topit.ecotrace.presentation.viewmodel.MapViewModel
+import com.topit.ecotrace.presentation.viewmodel.daggerViewModel
 import com.topit.ecotrace.ui.LocalAppStrings
 
 private data class BottomItem(
@@ -59,6 +64,9 @@ private const val DEFAULT_LON = 37.618423
 @Composable
 fun EcoTraceAppRoot() {
     val navController = rememberNavController()
+    // MapViewModel lives here so FiltersBottomSheet can call updateFilter
+    val mapViewModel: MapViewModel = daggerViewModel()
+    val mapFilter by mapViewModel.filter.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route?.substringBefore("?")?.substringBefore("/")
@@ -109,13 +117,17 @@ fun EcoTraceAppRoot() {
             composable(Screen.Map.route) {
                 MapScreen(
                     contentPadding = paddingValues,
+                    viewModel = mapViewModel,
                     onAddClick = { lat, lon -> navController.navigate(Screen.AddReport.createRoute(lat, lon)) },
                     onFiltersClick = { navController.navigate(Screen.Filters.route) },
                     onReportClick = { id -> navController.navigate(Screen.ReportDetails.createRoute(id)) },
                 )
             }
             composable(Screen.MyReports.route) {
-                MyReportsScreen(contentPadding = paddingValues)
+                MyReportsScreen(
+                    contentPadding = paddingValues,
+                    onReportClick = { id -> navController.navigate(Screen.ReportDetails.createRoute(id)) },
+                )
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(
@@ -170,7 +182,15 @@ fun EcoTraceAppRoot() {
                 )
             }
             composable(Screen.Filters.route) {
-                FiltersBottomSheet(contentPadding = paddingValues, onBack = { navController.navigateUp() })
+                FiltersBottomSheet(
+                    contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
+                    onApply = { types: Set<ProblemType>, statuses: Set<ReportStatus> ->
+                        mapViewModel.updateFilter(ReportFilter(types, statuses))
+                    },
+                    initialTypes = mapFilter.types,
+                    initialStatuses = mapFilter.statuses,
+                )
             }
 
             // ── LocationPicker: saves result to AddReport's savedStateHandle ─
