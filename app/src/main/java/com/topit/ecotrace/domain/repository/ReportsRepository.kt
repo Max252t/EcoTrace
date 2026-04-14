@@ -9,5 +9,6 @@ interface ReportsRepository {
     suspend fun createReport(report: Report)
     suspend fun updateReport(report: Report)
     suspend fun markAsResolved(id: String)
+    suspend fun deleteReport(id: String)
     suspend fun syncPending()
 }

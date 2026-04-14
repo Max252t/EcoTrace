@@ -18,31 +18,36 @@ import com.yandex.mapkit.map.ClusterListener
 import com.yandex.mapkit.map.InputListener
 import com.yandex.mapkit.map.MapObjectTapListener
 import com.yandex.mapkit.mapview.MapView
-import com.yandex.runtime.image.ImageProvider
 
 private val moscowCenter = Point(55.751244, 37.618423)
 
-// Marker colors matching the app status palette
-private const val COLOR_OPEN = 0xFFEF4444.toInt()        // red
-private const val COLOR_IN_PROGRESS = 0xFFD97706.toInt() // amber
-private const val COLOR_RESOLVED = 0xFF059669.toInt()    // green
-private const val COLOR_CLUSTER = 0xFF0C7D69.toInt()     // brand primary
+// Status colors for pin markers
+private const val COLOR_OPEN        = 0xFFEF4444.toInt()  // red
+private const val COLOR_IN_PROGRESS = 0xFFD97706.toInt()  // amber
+private const val COLOR_RESOLVED    = 0xFF059669.toInt()  // green
+private const val COLOR_CLUSTER     = 0xFF0C7D69.toInt()  // brand teal
+
+// Tag used to identify the user-location placemark
+private const val USER_LOCATION_TAG = "user_location"
 
 @Composable
 fun YandexMapComposable(
     reports: List<Report>,
     cameraTarget: Point?,
+    /** Current user GPS position — shown as a green circle, not clustered */
+    userLocation: Point?,
     onMapLongTap: (Point) -> Unit,
     onReportClick: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
 
-    // Bitmap markers — created once, re-used across recompositions
-    val markerOpen = remember(context) { markerBitmap(context, COLOR_OPEN) }
-    val markerInProgress = remember(context) { markerBitmap(context, COLOR_IN_PROGRESS) }
-    val markerResolved = remember(context) { markerBitmap(context, COLOR_RESOLVED) }
-    val markerCluster = remember(context) { markerBitmap(context, COLOR_CLUSTER) }
+    // Pin markers per status — created once and reused
+    val markerOpen        = remember(context) { pinMarkerBitmap(context, COLOR_OPEN) }
+    val markerInProgress  = remember(context) { pinMarkerBitmap(context, COLOR_IN_PROGRESS) }
+    val markerResolved    = remember(context) { pinMarkerBitmap(context, COLOR_RESOLVED) }
+    val markerCluster     = remember(context) { clusterBitmap(context, COLOR_CLUSTER) }
+    val markerUserLocation = remember(context) { userLocationBitmap(context) }
 
     val mapView = remember {
         MapView(context).apply {
@@ -64,7 +69,8 @@ fun YandexMapComposable(
     val tapListener = remember {
         MapObjectTapListener { mapObject, _ ->
             val id = mapObject.userData as? String
-            if (id != null) onReportClick(id)
+            // Ignore taps on the user-location marker
+            if (id != null && id != USER_LOCATION_TAG) onReportClick(id)
             true
         }
     }
@@ -93,6 +99,7 @@ fun YandexMapComposable(
         factory = { mapView },
         modifier = modifier,
         update = { view ->
+            // Move camera if requested
             if (cameraTarget != null) {
                 view.mapWindow.map.move(
                     CameraPosition(cameraTarget, 15f, 0f, 0f),
@@ -101,15 +108,27 @@ fun YandexMapComposable(
                 )
             }
 
+            // Clear all previous objects
             view.mapWindow.map.mapObjects.clear()
+
+            // ── User location — non-clustered green circle ────────────────
+            userLocation?.let { loc ->
+                val userMark = view.mapWindow.map.mapObjects.addPlacemark(
+                    loc,
+                    markerUserLocation,
+                )
+                userMark.userData = USER_LOCATION_TAG
+            }
+
+            // ── Report pin markers — clustered ────────────────────────────
             val clusterCollection = view.mapWindow.map.mapObjects
                 .addClusterizedPlacemarkCollection(clusterListener)
 
             reports.forEach { report ->
                 val icon = when (report.status) {
-                    ReportStatus.OPEN -> markerOpen
+                    ReportStatus.OPEN        -> markerOpen
                     ReportStatus.IN_PROGRESS -> markerInProgress
-                    ReportStatus.RESOLVED -> markerResolved
+                    ReportStatus.RESOLVED    -> markerResolved
                 }
                 val placemark = clusterCollection.addPlacemark(
                     Point(report.latitude, report.longitude),

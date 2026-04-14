@@ -29,4 +29,7 @@ interface ReportsDao {
 
     @Query("UPDATE reports SET synced = 1 WHERE id IN (:ids)")
     suspend fun markSynced(ids: List<String>)
+
+    @Query("DELETE FROM reports WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

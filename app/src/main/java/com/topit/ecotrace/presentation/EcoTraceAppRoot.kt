@@ -34,6 +34,7 @@ import com.topit.ecotrace.presentation.screens.MapScreen
 import com.topit.ecotrace.presentation.screens.MyReportsScreen
 import com.topit.ecotrace.presentation.screens.ProfileScreen
 import com.topit.ecotrace.presentation.screens.ReportDetailsScreen
+import com.topit.ecotrace.presentation.screens.SettingsScreen
 import com.topit.ecotrace.ui.LocalAppStrings
 
 private data class BottomItem(
@@ -48,6 +49,7 @@ private val hiddenNavRoutes = setOf(
     Screen.ReportDetails.route.substringBefore("/"),
     Screen.Filters.route,
     Screen.LocationPicker.route,
+    Screen.Settings.route,
 )
 
 @Composable
@@ -112,7 +114,16 @@ fun EcoTraceAppRoot() {
                 MyReportsScreen(contentPadding = paddingValues)
             }
             composable(Screen.Profile.route) {
-                ProfileScreen(contentPadding = paddingValues)
+                ProfileScreen(
+                    contentPadding = paddingValues,
+                    onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                )
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen(
+                    contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
+                )
             }
             composable(
                 route = Screen.AddReport.route,

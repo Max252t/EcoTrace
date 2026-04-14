@@ -18,4 +18,5 @@ sealed class Screen(val route: String, val title: String) {
     }
     data object Filters : Screen("filters", "Фильтры")
     data object LocationPicker : Screen("location_picker", "Выбор точки")
+    data object Settings : Screen("settings", "Настройки")
 }

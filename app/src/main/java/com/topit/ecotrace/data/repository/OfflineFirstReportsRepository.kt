@@ -35,6 +35,10 @@ class OfflineFirstReportsRepository @Inject constructor(
         reportsDao.updateStatus(id, ReportStatus.RESOLVED.name)
     }
 
+    override suspend fun deleteReport(id: String) {
+        reportsDao.deleteById(id)
+    }
+
     override suspend fun syncPending() {
         val unsynced = reportsDao.getUnsyncedReports()
         if (unsynced.isEmpty()) return
