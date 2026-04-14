@@ -16,6 +16,7 @@ room = "2.7.2"
 dagger = "2.57"
 serialization = "1.9.0"
 yandexMapkit = "4.26.1-lite"
+coil = "2.7.0"
 playServicesLocation = "21.3.0"
 
 [libraries]
@@ -47,6 +48,7 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 yandex-maps-mobile = { group = "com.yandex.android", name = "maps.mobile", version.ref = "yandexMapkit" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

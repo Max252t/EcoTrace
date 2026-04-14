@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.yandex.maps.mobile)
     implementation(libs.play.services.location)
     implementation(libs.androidx.compose.ui.text.google.fonts)
+    implementation(libs.coil.compose)
     kapt(libs.androidx.room.compiler)
     kapt(libs.dagger.compiler)
     testImplementation(libs.junit)

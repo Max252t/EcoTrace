@@ -7,7 +7,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
-import com.topit.ecotrace.R
 import com.topit.ecotrace.domain.model.Report
 import com.topit.ecotrace.domain.model.ReportStatus
 import com.yandex.mapkit.Animation
@@ -23,6 +22,12 @@ import com.yandex.runtime.image.ImageProvider
 
 private val moscowCenter = Point(55.751244, 37.618423)
 
+// Marker colors matching the app status palette
+private const val COLOR_OPEN = 0xFFEF4444.toInt()        // red
+private const val COLOR_IN_PROGRESS = 0xFFD97706.toInt() // amber
+private const val COLOR_RESOLVED = 0xFF059669.toInt()    // green
+private const val COLOR_CLUSTER = 0xFF0C7D69.toInt()     // brand primary
+
 @Composable
 fun YandexMapComposable(
     reports: List<Report>,
@@ -32,6 +37,13 @@ fun YandexMapComposable(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+
+    // Bitmap markers — created once, re-used across recompositions
+    val markerOpen = remember(context) { markerBitmap(context, COLOR_OPEN) }
+    val markerInProgress = remember(context) { markerBitmap(context, COLOR_IN_PROGRESS) }
+    val markerResolved = remember(context) { markerBitmap(context, COLOR_RESOLVED) }
+    val markerCluster = remember(context) { markerBitmap(context, COLOR_CLUSTER) }
+
     val mapView = remember {
         MapView(context).apply {
             layoutParams = android.view.ViewGroup.LayoutParams(MATCH_PARENT, MATCH_PARENT)
@@ -42,11 +54,13 @@ fun YandexMapComposable(
             )
         }
     }
-    val clusterListener = remember {
+
+    val clusterListener = remember(markerCluster) {
         ClusterListener { cluster: Cluster ->
-            cluster.appearance.setIcon(ImageProvider.fromResource(context, R.drawable.marker_in_progress))
+            cluster.appearance.setIcon(markerCluster)
         }
     }
+
     val tapListener = remember {
         MapObjectTapListener { mapObject, _ ->
             val id = mapObject.userData as? String
@@ -54,10 +68,10 @@ fun YandexMapComposable(
             true
         }
     }
+
     val inputListener = remember {
         object : InputListener {
             override fun onMapTap(map: com.yandex.mapkit.map.Map, point: Point) = Unit
-
             override fun onMapLongTap(map: com.yandex.mapkit.map.Map, point: Point) {
                 onMapLongTap(point)
             }
@@ -78,23 +92,28 @@ fun YandexMapComposable(
     AndroidView(
         factory = { mapView },
         modifier = modifier,
-        update = { currentMapView ->
+        update = { view ->
             if (cameraTarget != null) {
-                currentMapView.mapWindow.map.move(
+                view.mapWindow.map.move(
                     CameraPosition(cameraTarget, 15f, 0f, 0f),
                     Animation(Animation.Type.SMOOTH, 0.7f),
                     null,
                 )
             }
-            currentMapView.mapWindow.map.mapObjects.clear()
-            val clusterCollection = currentMapView.mapWindow.map.mapObjects
+
+            view.mapWindow.map.mapObjects.clear()
+            val clusterCollection = view.mapWindow.map.mapObjects
                 .addClusterizedPlacemarkCollection(clusterListener)
-            clusterCollection.clear()
 
             reports.forEach { report ->
+                val icon = when (report.status) {
+                    ReportStatus.OPEN -> markerOpen
+                    ReportStatus.IN_PROGRESS -> markerInProgress
+                    ReportStatus.RESOLVED -> markerResolved
+                }
                 val placemark = clusterCollection.addPlacemark(
                     Point(report.latitude, report.longitude),
-                    iconForStatus(context, report.status),
+                    icon,
                 )
                 placemark.userData = report.id
                 placemark.addTapListener(tapListener)
@@ -103,16 +122,4 @@ fun YandexMapComposable(
             clusterCollection.clusterPlacemarks(60.0, 14)
         },
     )
-}
-
-private fun iconForStatus(
-    context: android.content.Context,
-    status: ReportStatus,
-): ImageProvider {
-    val drawableId = when (status) {
-        ReportStatus.OPEN -> R.drawable.marker_open
-        ReportStatus.IN_PROGRESS -> R.drawable.marker_in_progress
-        ReportStatus.RESOLVED -> R.drawable.marker_resolved
-    }
-    return ImageProvider.fromResource(context, drawableId)
 }
