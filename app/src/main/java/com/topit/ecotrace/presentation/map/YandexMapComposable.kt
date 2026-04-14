@@ -3,7 +3,9 @@ package com.topit.ecotrace.presentation.map
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
@@ -66,11 +68,14 @@ fun YandexMapComposable(
         }
     }
 
+    val currentOnReportClick by rememberUpdatedState(onReportClick)
+    val currentOnMapLongTap by rememberUpdatedState(onMapLongTap)
+
     val tapListener = remember {
         MapObjectTapListener { mapObject, _ ->
             val id = mapObject.userData as? String
             // Ignore taps on the user-location marker
-            if (id != null && id != USER_LOCATION_TAG) onReportClick(id)
+            if (id != null && id != USER_LOCATION_TAG) currentOnReportClick(id)
             true
         }
     }
@@ -79,7 +84,7 @@ fun YandexMapComposable(
         object : InputListener {
             override fun onMapTap(map: com.yandex.mapkit.map.Map, point: Point) = Unit
             override fun onMapLongTap(map: com.yandex.mapkit.map.Map, point: Point) {
-                onMapLongTap(point)
+                currentOnMapLongTap(point)
             }
         }
     }
