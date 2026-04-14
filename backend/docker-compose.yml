@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecotrace-db
+    environment:
+      POSTGRES_DB: ecotrace
+      POSTGRES_USER: ecotrace
+      POSTGRES_PASSWORD: ecotrace
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecotrace -d ecotrace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecotrace-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 8080
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecotrace
+      DATABASE_USER: ecotrace
+      DATABASE_PASSWORD: ecotrace
+      JWT_SECRET: change-me-in-production
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:

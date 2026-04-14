@@ -202,20 +202,23 @@ fun ReportDetailsScreen(contentPadding: PaddingValues, onBack: () -> Unit, repor
 }
 
 private fun openRouteToPoint(context: Context, latitude: Double, longitude: Double) {
-    val lat = latitude.toString()
-    val lon = longitude.toString()
-    val candidates = listOf(
-        "yandexnavi://build_route_on_map?lat_to=$lat&lon_to=$lon",
-        "yandexmaps://maps.yandex.ru/?rtext=~$lat,$lon&rtt=pd",
-        "geo:$lat,$lon?q=$lat,$lon",
-        "https://maps.yandex.ru/?rtext=~$lat,$lon&rtt=pd",
-    )
-    for (uri in candidates) {
+    for (uri in routeCandidates(latitude, longitude)) {
         try {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)))
             return
         } catch (_: ActivityNotFoundException) {}
     }
+}
+
+internal fun routeCandidates(latitude: Double, longitude: Double): List<String> {
+    val lat = latitude.toString()
+    val lon = longitude.toString()
+    return listOf(
+        "yandexnavi://build_route_on_map?lat_to=$lat&lon_to=$lon",
+        "yandexmaps://maps.yandex.ru/?rtext=~$lat,$lon&rtt=pd",
+        "geo:$lat,$lon?q=$lat,$lon",
+        "https://maps.yandex.ru/?rtext=~$lat,$lon&rtt=pd",
+    )
 }
 
 @Composable
