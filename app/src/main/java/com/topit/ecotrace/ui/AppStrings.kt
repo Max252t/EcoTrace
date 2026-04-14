@@ -1,0 +1,210 @@
+package com.topit.ecotrace.ui
+
+import android.content.Context
+import android.content.res.Configuration
+import androidx.annotation.StringRes
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.topit.ecotrace.R
+import java.util.Locale
+
+data class AppStrings(
+    // Navigation
+    val navMap: String,
+    val navReports: String,
+    val navProfile: String,
+    // Map
+    val appSubtitle: String,
+    val pointsCount: (Int) -> String,
+    val filters: String,
+    val preview: String,
+    val longTapHint: String,
+    // Problem types
+    val typeDump: String,
+    val typeRoadPit: String,
+    val typePipeRupture: String,
+    val typeFallenTree: String,
+    // Statuses
+    val statusOpen: String,
+    val statusInProgress: String,
+    val statusResolved: String,
+    // Add report
+    val addReportTitle: String,
+    val addReportSubtitle: String,
+    val problemType: String,
+    val photo: String,
+    val noPhotoSelected: String,
+    val camera: String,
+    val gallery: String,
+    val descriptionSection: String,
+    val titleLabel: String,
+    val titlePlaceholder: String,
+    val descriptionLabel: String,
+    val descriptionPlaceholder: String,
+    val locationTitle: String,
+    val coordinates: String,
+    val myLocation: String,
+    val change: String,
+    val submitReport: String,
+    // My reports
+    val myReports: String,
+    val activeReports: (Int) -> String,
+    val noReportsTitle: String,
+    val noReportsMessage: String,
+    // Profile
+    val resident: String,
+    val ecoVolunteer: String,
+    val toNextLevel: String,
+    val reportsSubmitted: String,
+    val problemsSolved: String,
+    val ecoPoints: String,
+    val achievements: String,
+    val firstReport: String,
+    val firstReportSub: String,
+    val forestDefender: String,
+    val forestDefenderSub: String,
+    val level5: String,
+    val level5Sub: String,
+    // Report details
+    val reportDetails: String,
+    val photoLabel: String,
+    val descSection: String,
+    val infoSection: String,
+    val coordsLabel: String,
+    val typeInfoLabel: String,
+    val statusInfoLabel: String,
+    val authorLabel: String,
+    val routeButton: String,
+    val markResolved: String,
+    val statusOpenLong: String,
+    // Filters
+    val filtersTitle: String,
+    val filtersSubtitle: String,
+    val problemTypes: String,
+    val statuses: String,
+    val applyFilters: String,
+    val resetAll: String,
+    // Location picker
+    val pickLocationTitle: String,
+    val pickLocationSubtitle: String,
+    val mapPlaceholder: String,
+    val tapToPickDemo: String,
+    val locationSelected: String,
+    val confirmLocation: String,
+    // Settings
+    val settingsTitle: String,
+    val themeTitle: String,
+    val themeSystem: String,
+    val themeLight: String,
+    val themeDark: String,
+    val languageTitle: String,
+    val langRussian: String,
+    val langEnglish: String,
+    val backButton: String,
+)
+
+private fun localizedContext(context: Context, language: AppLanguage): Context {
+    val locale = when (language) {
+        AppLanguage.RU -> Locale.forLanguageTag("ru")
+        AppLanguage.EN -> Locale.ENGLISH
+    }
+    val config = Configuration(context.resources.configuration)
+    config.setLocale(locale)
+    return context.createConfigurationContext(config)
+}
+
+private fun Context.localizedString(
+    language: AppLanguage,
+    @StringRes resId: Int,
+    vararg args: Any,
+): String {
+    val localized = localizedContext(this, language)
+    return localized.getString(resId, *args)
+}
+
+fun appStringsFor(context: Context, language: AppLanguage): AppStrings = AppStrings(
+    navMap = context.localizedString(language, R.string.nav_map),
+    navReports = context.localizedString(language, R.string.nav_reports),
+    navProfile = context.localizedString(language, R.string.nav_profile),
+    appSubtitle = context.localizedString(language, R.string.app_subtitle),
+    pointsCount = { n -> context.localizedString(language, R.string.points_count, n) },
+    filters = context.localizedString(language, R.string.filters),
+    preview = context.localizedString(language, R.string.preview),
+    longTapHint = context.localizedString(language, R.string.long_tap_hint),
+    typeDump = context.localizedString(language, R.string.type_dump),
+    typeRoadPit = context.localizedString(language, R.string.type_road_pit),
+    typePipeRupture = context.localizedString(language, R.string.type_pipe_rupture),
+    typeFallenTree = context.localizedString(language, R.string.type_fallen_tree),
+    statusOpen = context.localizedString(language, R.string.status_open),
+    statusInProgress = context.localizedString(language, R.string.status_in_progress),
+    statusResolved = context.localizedString(language, R.string.status_resolved),
+    addReportTitle = context.localizedString(language, R.string.add_report_title),
+    addReportSubtitle = context.localizedString(language, R.string.add_report_subtitle),
+    problemType = context.localizedString(language, R.string.problem_type),
+    photo = context.localizedString(language, R.string.photo),
+    noPhotoSelected = context.localizedString(language, R.string.no_photo_selected),
+    camera = context.localizedString(language, R.string.camera),
+    gallery = context.localizedString(language, R.string.gallery),
+    descriptionSection = context.localizedString(language, R.string.description_section),
+    titleLabel = context.localizedString(language, R.string.title_label),
+    titlePlaceholder = context.localizedString(language, R.string.title_placeholder),
+    descriptionLabel = context.localizedString(language, R.string.description_label),
+    descriptionPlaceholder = context.localizedString(language, R.string.description_placeholder),
+    locationTitle = context.localizedString(language, R.string.location_title),
+    coordinates = context.localizedString(language, R.string.coordinates),
+    myLocation = context.localizedString(language, R.string.my_location),
+    change = context.localizedString(language, R.string.change),
+    submitReport = context.localizedString(language, R.string.submit_report),
+    myReports = context.localizedString(language, R.string.my_reports),
+    activeReports = { n -> context.localizedString(language, R.string.active_reports, n) },
+    noReportsTitle = context.localizedString(language, R.string.no_reports_title),
+    noReportsMessage = context.localizedString(language, R.string.no_reports_message),
+    resident = context.localizedString(language, R.string.resident),
+    ecoVolunteer = context.localizedString(language, R.string.eco_volunteer),
+    toNextLevel = context.localizedString(language, R.string.to_next_level),
+    reportsSubmitted = context.localizedString(language, R.string.reports_submitted),
+    problemsSolved = context.localizedString(language, R.string.problems_solved),
+    ecoPoints = context.localizedString(language, R.string.eco_points),
+    achievements = context.localizedString(language, R.string.achievements),
+    firstReport = context.localizedString(language, R.string.first_report),
+    firstReportSub = context.localizedString(language, R.string.first_report_sub),
+    forestDefender = context.localizedString(language, R.string.forest_defender),
+    forestDefenderSub = context.localizedString(language, R.string.forest_defender_sub),
+    level5 = context.localizedString(language, R.string.level_5),
+    level5Sub = context.localizedString(language, R.string.level_5_sub),
+    reportDetails = context.localizedString(language, R.string.report_details),
+    photoLabel = context.localizedString(language, R.string.photo_label),
+    descSection = context.localizedString(language, R.string.desc_section),
+    infoSection = context.localizedString(language, R.string.info_section),
+    coordsLabel = context.localizedString(language, R.string.coords_label),
+    typeInfoLabel = context.localizedString(language, R.string.type_info_label),
+    statusInfoLabel = context.localizedString(language, R.string.status_info_label),
+    authorLabel = context.localizedString(language, R.string.author_label),
+    routeButton = context.localizedString(language, R.string.route_button),
+    markResolved = context.localizedString(language, R.string.mark_resolved),
+    statusOpenLong = context.localizedString(language, R.string.status_open_long),
+    filtersTitle = context.localizedString(language, R.string.filters_title),
+    filtersSubtitle = context.localizedString(language, R.string.filters_subtitle),
+    problemTypes = context.localizedString(language, R.string.problem_types),
+    statuses = context.localizedString(language, R.string.statuses),
+    applyFilters = context.localizedString(language, R.string.apply_filters),
+    resetAll = context.localizedString(language, R.string.reset_all),
+    pickLocationTitle = context.localizedString(language, R.string.pick_location_title),
+    pickLocationSubtitle = context.localizedString(language, R.string.pick_location_subtitle),
+    mapPlaceholder = context.localizedString(language, R.string.map_placeholder),
+    tapToPickDemo = context.localizedString(language, R.string.tap_to_pick_demo),
+    locationSelected = context.localizedString(language, R.string.location_selected),
+    confirmLocation = context.localizedString(language, R.string.confirm_location),
+    settingsTitle = context.localizedString(language, R.string.settings_title),
+    themeTitle = context.localizedString(language, R.string.theme_title),
+    themeSystem = context.localizedString(language, R.string.theme_system),
+    themeLight = context.localizedString(language, R.string.theme_light),
+    themeDark = context.localizedString(language, R.string.theme_dark),
+    languageTitle = context.localizedString(language, R.string.language_title),
+    langRussian = context.localizedString(language, R.string.lang_russian),
+    langEnglish = context.localizedString(language, R.string.lang_english),
+    backButton = context.localizedString(language, R.string.back_button),
+)
+
+val LocalAppStrings = staticCompositionLocalOf<AppStrings> {
+    error("LocalAppStrings was not provided")
+}

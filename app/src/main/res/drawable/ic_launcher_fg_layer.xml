@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  EcoTrace adaptive icon foreground.
+  Canvas: 108 × 108 dp. Safe/visible zone: central 72 × 72 dp (18 dp inset each side).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Drop shadow (slightly offset) -->
+    <path
+        android:fillColor="#1A000000"
+        android:pathData="M55.5,82
+            C50.5,75 33.5,68 33.5,44
+            A21,21 0 1 1 77.5,44
+            C77.5,68 59.5,75 55.5,82 Z" />
+
+    <!-- Map-pin body in brand teal -->
+    <path
+        android:fillColor="#059669"
+        android:pathData="M54,80
+            C49,73 32,66 32,42
+            A22,22 0 1 1 76,42
+            C76,66 59,73 54,80 Z" />
+
+    <!-- White inner circle (center 54,42; radius 12) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,42 A12,12 0 1 0 66,42 A12,12 0 1 0 42,42 Z" />
+
+    <!-- Eco leaf inside the white circle (pointing up) -->
+    <path
+        android:fillColor="#059669"
+        android:pathData="M54,33
+            C51,35 49,39 50,43
+            C51,46 57,46 58,43
+            C59,39 57,35 54,33 Z" />
+
+    <!-- Leaf center vein -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.2"
+        android:pathData="M54,34 L54,46" />
+
+</vector>
