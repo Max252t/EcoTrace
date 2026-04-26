@@ -4,6 +4,8 @@ sealed class Screen(val route: String, val title: String) {
     data object Map : Screen("map", "Карта")
     data object MyReports : Screen("my_reports", "Мои отчеты")
     data object Profile : Screen("profile", "Профиль")
+    data object Login : Screen("login", "Вход")
+    data object Register : Screen("register", "Регистрация")
     data object AddReport : Screen("add_report?lat={lat}&lon={lon}", "Добавить") {
         fun createRoute(lat: Double? = null, lon: Double? = null): String {
             return if (lat != null && lon != null) {

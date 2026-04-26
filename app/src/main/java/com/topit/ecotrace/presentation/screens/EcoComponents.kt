@@ -46,9 +46,6 @@ import com.topit.ecotrace.ui.theme.StatusOpenFg
 import com.topit.ecotrace.ui.theme.StatusResolvedBg
 import com.topit.ecotrace.ui.theme.StatusResolvedFg
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  ScreenHeader
-// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 internal fun ScreenHeader(
@@ -110,9 +107,7 @@ internal fun ScreenHeader(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  AdaptiveContent
-// ─────────────────────────────────────────────────────────────────────────────
+
 
 @Composable
 internal fun AdaptiveContent(maxWidth: Dp = 560.dp, content: @Composable () -> Unit) {
@@ -126,9 +121,7 @@ internal fun AdaptiveContent(maxWidth: Dp = 560.dp, content: @Composable () -> U
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  EcoSection
-// ─────────────────────────────────────────────────────────────────────────────
+
 
 @Composable
 internal fun EcoSection(title: String, content: @Composable ColumnScope.() -> Unit) {
@@ -145,9 +138,7 @@ internal fun EcoSection(title: String, content: @Composable ColumnScope.() -> Un
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  StatusBadge
-// ─────────────────────────────────────────────────────────────────────────────
+
 
 @Composable
 internal fun StatusBadge(status: ReportStatus) {
@@ -164,9 +155,7 @@ internal fun StatusBadge(status: ReportStatus) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  TypeChip
-// ─────────────────────────────────────────────────────────────────────────────
+
 
 @Composable
 internal fun TypeChip(type: ProblemType) {
@@ -182,9 +171,7 @@ internal fun TypeChip(type: ProblemType) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  EmptyState
-// ─────────────────────────────────────────────────────────────────────────────
+
 
 @Composable
 internal fun EmptyState(icon: ImageVector, title: String, message: String) {
@@ -205,9 +192,6 @@ internal fun EmptyState(icon: ImageVector, title: String, message: String) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  statusColors — dark-mode aware
-// ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
 internal fun statusColors(status: ReportStatus): Pair<Color, Color> {

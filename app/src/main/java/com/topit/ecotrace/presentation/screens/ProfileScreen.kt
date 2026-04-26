@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,6 +51,8 @@ import com.topit.ecotrace.ui.LocalAppStrings
 fun ProfileScreen(
     contentPadding: PaddingValues,
     onSettingsClick: () -> Unit,
+    onLoginClick: () -> Unit,
+    onRegisterClick: () -> Unit,
 ) {
     val s = LocalAppStrings.current
 
@@ -173,6 +176,24 @@ fun ProfileScreen(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                FilledTonalButton(
+                    onClick = onLoginClick,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(s.loginButton)
+                }
+                FilledTonalButton(
+                    onClick = onRegisterClick,
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(s.registerButton)
+                }
+            }
+
             // Stat cards
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),

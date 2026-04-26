@@ -73,7 +73,7 @@ fun FiltersBottomSheet(
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 EcoSection(title = s.problemTypes) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ProblemType.values().forEach { type ->
+                        ProblemType.entries.forEach { type ->
                             val selected = type in selectedTypes
                             FilterChip(
                                 selected = selected,
@@ -92,7 +92,7 @@ fun FiltersBottomSheet(
 
                 EcoSection(title = s.statuses) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ReportStatus.values().forEach { status ->
+                        ReportStatus.entries.forEach { status ->
                             val selected = status in selectedStatuses
                             val (bg, fg) = statusColors(status)
                             Surface(

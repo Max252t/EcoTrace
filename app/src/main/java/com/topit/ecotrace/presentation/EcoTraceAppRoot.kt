@@ -33,10 +33,12 @@ import com.topit.ecotrace.domain.model.ReportStatus
 import com.topit.ecotrace.presentation.navigation.Screen
 import com.topit.ecotrace.presentation.screens.AddReportScreen
 import com.topit.ecotrace.presentation.screens.FiltersBottomSheet
+import com.topit.ecotrace.presentation.screens.LoginScreen
 import com.topit.ecotrace.presentation.screens.LocationPickerScreen
 import com.topit.ecotrace.presentation.screens.MapScreen
 import com.topit.ecotrace.presentation.screens.MyReportsScreen
 import com.topit.ecotrace.presentation.screens.ProfileScreen
+import com.topit.ecotrace.presentation.screens.RegisterScreen
 import com.topit.ecotrace.presentation.screens.ReportDetailsScreen
 import com.topit.ecotrace.presentation.screens.SettingsScreen
 import com.topit.ecotrace.presentation.viewmodel.MapViewModel
@@ -56,6 +58,8 @@ private val hiddenNavRoutes = setOf(
     Screen.Filters.route,
     Screen.LocationPicker.route.substringBefore("?"),
     Screen.Settings.route,
+    Screen.Login.route,
+    Screen.Register.route,
 )
 
 private const val DEFAULT_LAT = 55.751244
@@ -132,6 +136,24 @@ fun EcoTraceAppRoot() {
                 ProfileScreen(
                     contentPadding = paddingValues,
                     onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                    onLoginClick = { navController.navigate(Screen.Login.route) },
+                    onRegisterClick = { navController.navigate(Screen.Register.route) },
+                )
+            }
+            composable(Screen.Login.route) {
+                LoginScreen(
+                    contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
+                    onOpenRegister = { navController.navigate(Screen.Register.route) },
+                    onLogin = { _, _ -> navController.navigateUp() },
+                )
+            }
+            composable(Screen.Register.route) {
+                RegisterScreen(
+                    contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
+                    onOpenLogin = { navController.navigate(Screen.Login.route) },
+                    onRegister = { _, _, _ -> navController.navigateUp() },
                 )
             }
             composable(Screen.Settings.route) {

@@ -80,5 +80,24 @@
     <string name="language_title">Language</string>
     <string name="lang_russian">Русский</string>
     <string name="lang_english">English</string>
+    <string name="login_title">Sign In</string>
+    <string name="login_subtitle">Use your email and password</string>
+    <string name="login_section_title">Authentication</string>
+    <string name="login_button">Sign In</string>
+    <string name="register_title">Sign Up</string>
+    <string name="register_subtitle">Create a new account</string>
+    <string name="register_section_title">New account</string>
+    <string name="register_button">Sign Up</string>
+    <string name="no_account_register">No account? Sign up</string>
+    <string name="have_account_login">Already have an account? Sign in</string>
+    <string name="auth_name_label">Name</string>
+    <string name="auth_name_placeholder">Your name</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_email_placeholder">name@example.com</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_password_placeholder">At least 6 characters</string>
+    <string name="auth_confirm_password_label">Confirm password</string>
+    <string name="auth_confirm_password_placeholder">Enter password again</string>
+    <string name="passwords_dont_match">Passwords do not match</string>
     <string name="back_button">Back</string>
 </resources>

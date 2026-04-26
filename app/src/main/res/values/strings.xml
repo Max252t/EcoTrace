@@ -80,5 +80,24 @@
     <string name="language_title">Язык</string>
     <string name="lang_russian">Русский</string>
     <string name="lang_english">English</string>
+    <string name="login_title">Вход в аккаунт</string>
+    <string name="login_subtitle">Используйте email и пароль</string>
+    <string name="login_section_title">Авторизация</string>
+    <string name="login_button">Войти</string>
+    <string name="register_title">Регистрация</string>
+    <string name="register_subtitle">Создайте новый аккаунт</string>
+    <string name="register_section_title">Новый аккаунт</string>
+    <string name="register_button">Зарегистрироваться</string>
+    <string name="no_account_register">Нет аккаунта? Зарегистрироваться</string>
+    <string name="have_account_login">Уже есть аккаунт? Войти</string>
+    <string name="auth_name_label">Имя</string>
+    <string name="auth_name_placeholder">Ваше имя</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_email_placeholder">name@example.com</string>
+    <string name="auth_password_label">Пароль</string>
+    <string name="auth_password_placeholder">Минимум 6 символов</string>
+    <string name="auth_confirm_password_label">Повторите пароль</string>
+    <string name="auth_confirm_password_placeholder">Введите пароль еще раз</string>
+    <string name="passwords_dont_match">Пароли не совпадают</string>
     <string name="back_button">Назад</string>
 </resources>
