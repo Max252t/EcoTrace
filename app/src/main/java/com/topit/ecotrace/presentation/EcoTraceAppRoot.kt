@@ -16,6 +16,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,6 +42,7 @@ import com.topit.ecotrace.presentation.screens.ProfileScreen
 import com.topit.ecotrace.presentation.screens.RegisterScreen
 import com.topit.ecotrace.presentation.screens.ReportDetailsScreen
 import com.topit.ecotrace.presentation.screens.SettingsScreen
+import com.topit.ecotrace.presentation.viewmodel.AuthViewModel
 import com.topit.ecotrace.presentation.viewmodel.MapViewModel
 import com.topit.ecotrace.presentation.viewmodel.daggerViewModel
 import com.topit.ecotrace.ui.LocalAppStrings
@@ -69,6 +71,8 @@ private const val DEFAULT_LON = 37.618423
 fun EcoTraceAppRoot() {
     val navController = rememberNavController()
     val mapViewModel: MapViewModel = daggerViewModel()
+    val authViewModel: AuthViewModel = daggerViewModel()
+    val authState by authViewModel.uiState.collectAsStateWithLifecycle()
     val mapFilter by mapViewModel.filter.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -76,6 +80,7 @@ fun EcoTraceAppRoot() {
     val s = LocalAppStrings.current
 
     val showBottomBar = currentRoute !in hiddenNavRoutes
+    val startDestination = if (authState.isAuthenticated) Screen.Map.route else Screen.Login.route
 
     val bottomItems = listOf(
         BottomItem(Screen.Map, Icons.Filled.Map, Icons.Outlined.Map) { s.navMap },
@@ -116,7 +121,16 @@ fun EcoTraceAppRoot() {
             }
         },
     ) { paddingValues ->
-        NavHost(navController = navController, startDestination = Screen.Map.route) {
+        LaunchedEffect(authState.isAuthenticated) {
+            if (authState.isAuthenticated) {
+                navController.navigate(Screen.Map.route) {
+                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+
+        NavHost(navController = navController, startDestination = startDestination) {
             composable(Screen.Map.route) {
                 MapScreen(
                     contentPadding = paddingValues,
@@ -136,28 +150,40 @@ fun EcoTraceAppRoot() {
                 ProfileScreen(
                     contentPadding = paddingValues,
                     onSettingsClick = { navController.navigate(Screen.Settings.route) },
-                    onLoginClick = { navController.navigate(Screen.Login.route) },
-                    onRegisterClick = { navController.navigate(Screen.Register.route) },
                 )
             }
             composable(Screen.Login.route) {
                 LoginScreen(
                     contentPadding = paddingValues,
-                    onBack = { navController.navigateUp() },
                     onOpenRegister = { navController.navigate(Screen.Register.route) },
-                    onLogin = { _, _ -> navController.navigateUp() },
+                    isLoading = authState.isLoading,
+                    errorMessage = authState.error,
+                    onLogin = { email, password -> authViewModel.login(email, password) },
                 )
             }
             composable(Screen.Register.route) {
                 RegisterScreen(
                     contentPadding = paddingValues,
-                    onBack = { navController.navigateUp() },
                     onOpenLogin = { navController.navigate(Screen.Login.route) },
-                    onRegister = { _, _, _ -> navController.navigateUp() },
+                    isLoading = authState.isLoading,
+                    errorMessage = authState.error,
+                    onRegister = { name, email, password ->
+                        authViewModel.register(name, email, password)
+                    },
                 )
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(contentPadding = paddingValues, onBack = { navController.navigateUp() })
+                SettingsScreen(
+                    contentPadding = paddingValues,
+                    onBack = { navController.navigateUp() },
+                    onLogout = {
+                        authViewModel.logout()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
             }
 
             // ── AddReport: reads picked location from savedStateHandle ─────

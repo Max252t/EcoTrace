@@ -15,9 +15,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -39,7 +40,11 @@ import com.topit.ecotrace.ui.ThemeMode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(contentPadding: PaddingValues, onBack: () -> Unit) {
+fun SettingsScreen(
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+    onLogout: () -> Unit,
+) {
     val s = LocalAppStrings.current
     val themeMode = LocalThemeMode.current
     val onThemeChange = LocalOnThemeChange.current
@@ -152,6 +157,18 @@ fun SettingsScreen(contentPadding: PaddingValues, onBack: () -> Unit) {
                                 Text(label, style = MaterialTheme.typography.labelSmall)
                             }
                         }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    FilledIconButton(onClick = onLogout) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = s.logoutButton,
+                        )
                     }
                 }
             }

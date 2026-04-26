@@ -2,6 +2,7 @@ package com.topit.ecotrace.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.topit.ecotrace.domain.repository.AuthRepository
 import com.topit.ecotrace.domain.model.ProblemType
 import com.topit.ecotrace.domain.model.Report
 import com.topit.ecotrace.domain.usecase.AddReportUseCase
@@ -10,6 +11,7 @@ import javax.inject.Inject
 
 class AddReportViewModel @Inject constructor(
     private val addReportUseCase: AddReportUseCase,
+    private val authRepository: AuthRepository,
 ) : ViewModel() {
     fun createDraftReport(
         title: String,
@@ -28,7 +30,7 @@ class AddReportViewModel @Inject constructor(
                     latitude = latitude,
                     longitude = longitude,
                     imageUri = imageUri,
-                    authorId = "local-user",
+                    authorId = authRepository.currentSession()?.userId ?: "local-user",
                 ),
             )
         }

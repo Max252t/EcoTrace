@@ -25,27 +25,55 @@ class OfflineFirstReportsRepository @Inject constructor(
 
     override suspend fun createReport(report: Report) {
         reportsDao.insert(report.toEntity(synced = false))
+        syncPending()
     }
 
     override suspend fun updateReport(report: Report) {
         reportsDao.update(report.toEntity(synced = false))
+        syncPending()
     }
 
     override suspend fun markAsResolved(id: String) {
         reportsDao.updateStatus(id, ReportStatus.RESOLVED.name)
+        syncPending()
     }
 
     override suspend fun deleteReport(id: String) {
         reportsDao.deleteById(id)
+        remoteDataSource.deleteReport(id)
     }
 
     override suspend fun syncPending() {
+        val remoteReports = remoteDataSource.fetchReports()
+        if (remoteReports.isNotEmpty()) {
+            reportsDao.insertAll(remoteReports.map { it.toEntity(synced = true) })
+        }
+
         val unsynced = reportsDao.getUnsyncedReports()
         if (unsynced.isEmpty()) return
 
-        val synced = remoteDataSource.upsertReports(unsynced.map { it.toDomain() })
-        if (synced) {
-            reportsDao.markSynced(unsynced.map { it.id })
+        unsynced.forEach { entity ->
+            val report = entity.toDomain()
+            val synced = if (report.status == ReportStatus.OPEN) {
+                val created = remoteDataSource.createReport(report)
+                if (created != null) {
+                    reportsDao.insert(created.toEntity(synced = true))
+                    if (created.id != report.id) {
+                        reportsDao.deleteById(report.id)
+                    } else {
+                        reportsDao.markSynced(listOf(report.id))
+                    }
+                    true
+                } else {
+                    false
+                }
+            } else {
+                remoteDataSource.updateStatus(report.id, report.status.name)
+            }
+
+            if (synced) {
+                reportsDao.markSynced(listOf(report.id))
+            }
         }
     }
 }

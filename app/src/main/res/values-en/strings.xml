@@ -84,6 +84,7 @@
     <string name="login_subtitle">Use your email and password</string>
     <string name="login_section_title">Authentication</string>
     <string name="login_button">Sign In</string>
+    <string name="logout_button">Sign Out</string>
     <string name="register_title">Sign Up</string>
     <string name="register_subtitle">Create a new account</string>
     <string name="register_section_title">New account</string>

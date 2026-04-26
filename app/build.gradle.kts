@@ -8,6 +8,9 @@ plugins {
     id("org.jetbrains.kotlin.kapt")
 }
 
+// Work around occasional Windows file-locking of app/build intermediates.
+layout.buildDirectory.set(rootProject.layout.buildDirectory.dir("app-module"))
+
 val yandexMapsApiKey: String = run {
     val propsFile = rootProject.file("local.properties")
     if (!propsFile.exists()) {
@@ -18,6 +21,20 @@ val yandexMapsApiKey: String = run {
             ?.substringAfter("=")
             ?.trim()
             .orEmpty()
+    }
+}
+
+val backendBaseUrl: String = run {
+    val propsFile = rootProject.file("local.properties")
+    if (!propsFile.exists()) {
+        "http://10.0.2.2:8080/"
+    } else {
+        propsFile.readLines()
+            .firstOrNull { it.startsWith("backend.base.url=") }
+            ?.substringAfter("=")
+            ?.trim()
+            .orEmpty()
+            .ifBlank { "http://10.0.2.2:8080/" }
     }
 }
 
@@ -32,6 +49,7 @@ extensions.configure<ApplicationExtension>("android") {
         versionCode = 1
         versionName = "1.0"
         buildConfigField("String", "YANDEX_MAPS_API_KEY", "\"$yandexMapsApiKey\"")
+        buildConfigField("String", "BACKEND_BASE_URL", "\"$backendBaseUrl\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -83,6 +101,9 @@ dependencies {
     implementation(libs.play.services.location)
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.coil.compose)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging.interceptor)
     kapt(libs.androidx.room.compiler)
     kapt(libs.dagger.compiler)
     testImplementation(libs.junit)

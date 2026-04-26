@@ -84,6 +84,7 @@
     <string name="login_subtitle">Используйте email и пароль</string>
     <string name="login_section_title">Авторизация</string>
     <string name="login_button">Войти</string>
+    <string name="logout_button">Выйти из аккаунта</string>
     <string name="register_title">Регистрация</string>
     <string name="register_subtitle">Создайте новый аккаунт</string>
     <string name="register_section_title">Новый аккаунт</string>

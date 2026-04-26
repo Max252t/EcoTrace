@@ -1,5 +1,6 @@
 package com.topit.ecotrace.presentation.screens
 
+import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,11 +15,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,15 +36,17 @@ import com.topit.ecotrace.ui.LocalAppStrings
 @Composable
 fun LoginScreen(
     contentPadding: PaddingValues,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onOpenRegister: () -> Unit,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onLogin: (email: String, password: String) -> Unit = { _, _ -> },
 ) {
     val s = LocalAppStrings.current
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-    val canSubmit by remember(email, password) {
-        mutableStateOf(email.contains("@") && password.length >= 6)
+    val canSubmit by remember(email, password, isLoading) {
+        derivedStateOf { email.isValidEmail() && password.length >= 6 && !isLoading }
     }
 
     AdaptiveContent {
@@ -84,12 +89,26 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             modifier = Modifier.fillMaxWidth(),
                         )
+                        if (!errorMessage.isNullOrBlank()) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                         Button(
                             onClick = { onLogin(email, password) },
                             enabled = canSubmit,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(s.loginButton)
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.padding(vertical = 2.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            } else {
+                                Text(s.loginButton)
+                            }
                         }
                         OutlinedButton(
                             onClick = onOpenRegister,
@@ -107,8 +126,10 @@ fun LoginScreen(
 @Composable
 fun RegisterScreen(
     contentPadding: PaddingValues,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)? = null,
     onOpenLogin: () -> Unit,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
     onRegister: (name: String, email: String, password: String) -> Unit = { _, _, _ -> },
 ) {
     val s = LocalAppStrings.current
@@ -116,13 +137,14 @@ fun RegisterScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
-    val canSubmit by remember(name, email, password, confirmPassword) {
-        mutableStateOf(
+    val canSubmit by remember(name, email, password, confirmPassword, isLoading) {
+        derivedStateOf {
             name.isNotBlank() &&
-                email.contains("@") &&
+                email.isValidEmail() &&
                 password.length >= 6 &&
-                password == confirmPassword,
-        )
+                password == confirmPassword &&
+                !isLoading
+        }
     }
 
     AdaptiveContent {
@@ -190,12 +212,26 @@ fun RegisterScreen(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
+                        if (!errorMessage.isNullOrBlank()) {
+                            Text(
+                                text = errorMessage,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
                         Button(
                             onClick = { onRegister(name.trim(), email, password) },
                             enabled = canSubmit,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(s.registerButton)
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.padding(vertical = 2.dp),
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                )
+                            } else {
+                                Text(s.registerButton)
+                            }
                         }
                         OutlinedButton(
                             onClick = onOpenLogin,
@@ -208,4 +244,8 @@ fun RegisterScreen(
             }
         }
     }
+}
+
+private fun String.isValidEmail(): Boolean {
+    return Patterns.EMAIL_ADDRESS.matcher(this).matches()
 }
