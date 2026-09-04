@@ -35,6 +35,7 @@ object DatabaseFactory {
             SchemaUtils.createMissingTablesAndColumns(
                 UsersTable,
                 ReportsTable,
+                UserAchievementsTable,
             )
         }
     }
