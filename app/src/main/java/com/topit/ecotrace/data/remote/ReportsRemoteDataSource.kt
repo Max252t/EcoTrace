@@ -7,5 +7,4 @@ interface ReportsRemoteDataSource {
     suspend fun createReport(report: Report): Report?
     suspend fun updateStatus(id: String, status: String): Boolean
     suspend fun deleteReport(id: String): Boolean
-    suspend fun upsertReports(reports: List<Report>): Boolean
 }

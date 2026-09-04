@@ -56,6 +56,7 @@
     <string name="level_progress">%1$d / %2$d</string>
     <string name="achievements_progress">Открыто %1$d из %2$d</string>
     <string name="author_unknown">Неизвестный автор</string>
+    <string name="session_expired">Сессия истекла. Войдите снова, чтобы отправить отчёт</string>
     <string name="report_details">Детали проблемы</string>
     <string name="photo_label">Фото проблемы</string>
     <string name="desc_section">Описание</string>
@@ -75,8 +76,6 @@
     <string name="reset_all">Сбросить все</string>
     <string name="pick_location_title">Выбор места</string>
     <string name="pick_location_subtitle">Тапните по карте для точного указания</string>
-    <string name="map_placeholder">Карта (заглушка)</string>
-    <string name="tap_to_pick_demo">Тапните для выбора демо-точки</string>
     <string name="location_selected">Место выбрано</string>
     <string name="confirm_location">Подтвердить местоположение</string>
     <string name="settings_title">Настройки</string>

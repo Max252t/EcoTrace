@@ -18,7 +18,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Instant
 
-class SupabaseReportsRemoteDataSourceTest {
+class BackendReportsRemoteDataSourceTest {
 
     private val reportsApi: ReportsApi = mockk()
     private val sessionStorage: SessionStorage = mockk()
@@ -97,7 +97,7 @@ class SupabaseReportsRemoteDataSourceTest {
     }
 
     private fun dataSource() =
-        SupabaseReportsRemoteDataSource(reportsApi, sessionStorage, imageUploader)
+        BackendReportsRemoteDataSource(reportsApi, sessionStorage, imageUploader)
 
     private fun report(imageUri: String?) = Report(
         id = "r-1",

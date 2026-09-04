@@ -20,7 +20,9 @@ class AddReportViewModel @Inject constructor(
         latitude: Double,
         longitude: Double,
         imageUri: String?,
-    ) {
+    ): Boolean {
+        val authorId = authRepository.currentSession()?.userId ?: return false
+
         viewModelScope.launch {
             addReportUseCase(
                 Report(
@@ -30,9 +32,10 @@ class AddReportViewModel @Inject constructor(
                     latitude = latitude,
                     longitude = longitude,
                     imageUri = imageUri,
-                    authorId = authRepository.currentSession()?.userId ?: "local-user",
+                    authorId = authorId,
                 ),
             )
         }
+        return true
     }
 }

@@ -8,7 +8,7 @@ import com.topit.ecotrace.data.remote.api.UpdateStatusRequestDto
 import com.topit.ecotrace.domain.model.Report
 import javax.inject.Inject
 
-class SupabaseReportsRemoteDataSource @Inject constructor(
+class BackendReportsRemoteDataSource @Inject constructor(
     private val reportsApi: ReportsApi,
     private val sessionStorage: SessionStorage,
     private val imageUploader: ImageUploader,
@@ -48,19 +48,6 @@ class SupabaseReportsRemoteDataSource @Inject constructor(
             val response = reportsApi.deleteReport(id)
             response.isSuccessful || response.code() == HTTP_NOT_FOUND
         }.getOrDefault(false)
-    }
-
-    override suspend fun upsertReports(reports: List<Report>): Boolean {
-        var allSynced = true
-        reports.forEach { report ->
-            val ok = if (report.status == com.topit.ecotrace.domain.model.ReportStatus.OPEN) {
-                createReport(report) != null
-            } else {
-                updateStatus(report.id, report.status.name)
-            }
-            allSynced = allSynced && ok
-        }
-        return allSynced
     }
 
     private companion object {

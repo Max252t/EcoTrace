@@ -1,7 +1,7 @@
 package com.topit.ecotrace.di
 
 import com.topit.ecotrace.BuildConfig
-import com.topit.ecotrace.data.local.SessionStorage
+import com.topit.ecotrace.data.remote.AuthInterceptor
 import com.topit.ecotrace.data.remote.api.AchievementsApi
 import com.topit.ecotrace.data.remote.api.AuthApi
 import com.topit.ecotrace.data.remote.api.FilesApi
@@ -9,7 +9,6 @@ import com.topit.ecotrace.data.remote.api.ReportsApi
 import com.topit.ecotrace.data.remote.api.UsersApi
 import dagger.Module
 import dagger.Provides
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -20,20 +19,7 @@ import javax.inject.Singleton
 object NetworkModule {
     @Provides
     @Singleton
-    fun provideOkHttp(sessionStorage: SessionStorage): OkHttpClient {
-        val authInterceptor = Interceptor { chain ->
-            val original = chain.request()
-            val token = sessionStorage.token()
-            val request = if (token.isNullOrBlank()) {
-                original
-            } else {
-                original.newBuilder()
-                    .header("Authorization", "Bearer $token")
-                    .build()
-            }
-            chain.proceed(request)
-        }
-
+    fun provideOkHttp(authInterceptor: AuthInterceptor): OkHttpClient {
         val logger = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         }
