@@ -72,6 +72,7 @@ fun ReportDetailsScreen(contentPadding: PaddingValues, onBack: () -> Unit, repor
     val viewModel: ReportDetailsViewModel = daggerViewModel()
     val report by viewModel.report.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val authorName by viewModel.authorName.collectAsStateWithLifecycle()
 
     LaunchedEffect(reportId) { viewModel.load(reportId) }
 
@@ -123,7 +124,7 @@ fun ReportDetailsScreen(contentPadding: PaddingValues, onBack: () -> Unit, repor
                 ) {
                     if (!currentReport.imageUri.isNullOrBlank()) {
                         AsyncImage(
-                            model = currentReport.imageUri,
+                            model = imageModel(currentReport.imageUri),
                             contentDescription = s.photoLabel,
                             modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)),
                             contentScale = ContentScale.Crop,
@@ -164,7 +165,7 @@ fun ReportDetailsScreen(contentPadding: PaddingValues, onBack: () -> Unit, repor
                     InfoRow(Icons.Default.LocationOn, s.coordsLabel, "%.5f, %.5f".format(currentReport.latitude, currentReport.longitude))
                     InfoRow(Icons.Default.WarningAmber, s.typeInfoLabel, typeLabel(currentReport.type))
                     InfoRow(Icons.Default.Pending, s.statusInfoLabel, statusLabel(currentReport.status))
-                    InfoRow(Icons.Default.Person, s.authorLabel, currentReport.authorId)
+                    InfoRow(Icons.Default.Person, s.authorLabel, authorName ?: s.authorUnknown)
                     InfoRow(
                         Icons.Default.CalendarToday,
                         "Дата",

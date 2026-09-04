@@ -38,14 +38,20 @@ backend/
 │   │   │   ├── DatabaseFactory.kt   ← Hikari pool, Exposed connection, schema creation
 │   │   │   ├── Tables.kt            ← users and reports tables
 │   │   │   └── DbExtensions.kt
+│   │   ├── storage/
+│   │   │   └── FileStorage.kt   ← photo storage on the file system
 │   │   └── repository/
+│   │       ├── AchievementsRepositoryImpl.kt
 │   │       ├── ReportsRepositoryImpl.kt
 │   │       └── UsersRepositoryImpl.kt
 │   ├── domain/
 │   │   ├── model/
+│   │   │   ├── Achievement.kt   ← achievement codes and DTOs
+│   │   │   ├── AchievementRules.kt  ← statistics, unlock rules, merge logic
 │   │   │   ├── Report.kt        ← domain models and DTOs
 │   │   │   └── User.kt
 │   │   └── repository/
+│   │       ├── AchievementsRepository.kt
 │   │       ├── ReportsRepository.kt
 │   │       └── UsersRepository.kt
 │   ├── plugins/
@@ -54,8 +60,12 @@ backend/
 │   │   ├── Serialization.kt
 │   │   └── StatusPages.kt       ← maps exceptions to JSON error responses
 │   └── routes/
+│       ├── AchievementsRoutes.kt
 │       ├── AuthRoutes.kt
-│       └── ReportsRoutes.kt
+│       ├── FilesRoutes.kt
+│       ├── ReportsRoutes.kt
+│       └── UsersRoutes.kt
+├── src/test/kotlin/           ← unit tests for the achievement rules
 ├── src/main/resources/
 │   ├── application.conf         ← port, JWT and database settings
 │   └── logback.xml
@@ -69,21 +79,29 @@ backend/
 ### 1. Run PostgreSQL only
 
 ```bash
-docker compose up postgres -d
+docker compose -f backend/docker-compose.yml up postgres -d
 ```
 
 ### 2. Run the server locally
 
+The Gradle wrapper lives in the repository root, so run the backend project with `-p backend`:
+
 ```bash
-./gradlew run
+./gradlew -p backend run
 ```
 
 The server starts on `http://localhost:8080`.
 
-### 3. Run everything with Docker Compose
+### 3. Run the tests
 
 ```bash
-docker compose up --build
+./gradlew -p backend test
+```
+
+### 4. Run everything with Docker Compose
+
+```bash
+docker compose -f backend/docker-compose.yml up --build
 ```
 
 This builds a fat JAR inside the image and starts the API together with PostgreSQL. The API is
@@ -101,6 +119,8 @@ variables. Copy `.env.example` to `.env` and adjust it, or export the variables 
 | `DATABASE_USER` | `ecotrace` | Database user |
 | `DATABASE_PASSWORD` | `ecotrace` | Database password |
 | `JWT_SECRET` | `ecotrace-secret-key-change-in-production` | HS256 signing key — **must** be replaced in production |
+| `UPLOAD_DIR` | `uploads` | Directory for uploaded photos |
+| `MAX_UPLOAD_BYTES` | `10485760` | Maximum size of a single upload |
 
 Tokens are issued with issuer `ecotrace`, audience `ecotrace-users` and a lifetime of 24 hours, and
 carry the `userId`, `email` and `role` claims.
@@ -132,9 +152,19 @@ carry the `userId`, `email` and `role` claims.
 | `author_id` | varchar(36) | references `users.id` |
 | `created_at` / `updated_at` | timestamp | |
 
+`user_achievements`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `user_id` | varchar(36) | references `users.id`, part of the primary key |
+| `code` | varchar(64) | achievement code, part of the primary key |
+| `unlocked_at` | timestamp | earliest known unlock time, including offline unlocks |
+
 **Problem types:** `DUMP`, `ROAD_PIT`, `PIPE_RUPTURE`, `FALLEN_TREE`
 
 **Statuses:** `OPEN`, `IN_PROGRESS`, `RESOLVED`
+
+**Achievements:** `FIRST_REPORT`, `REPORTER_10`, `FOREST_DEFENDER`, `PROBLEM_SOLVER`, `LEVEL_5`
 
 ---
 
@@ -245,6 +275,91 @@ role; otherwise the server answers `403 Forbidden`.
 ```
 Authorization: Bearer <token>
 ```
+
+### Files
+
+| Method | URL | Auth | Description |
+|--------|-----|------|-------------|
+| `POST` | `/api/files` | ✅ | Upload a photo as `multipart/form-data`, part name `file` |
+| `GET` | `/api/files/{name}` | — | Download a stored photo |
+
+JPEG, PNG and WebP are accepted, up to `MAX_UPLOAD_BYTES` (10 MB by default). The type is taken from
+the part's content type and falls back to the file extension; anything else is rejected with
+`415 Unsupported Media Type`, and an oversized file with `413 Payload Too Large`.
+
+```json
+{ "name": "0f1c….jpg", "url": "/api/files/0f1c….jpg" }
+```
+
+The stored name is a generated UUID, so a client-supplied file name never reaches the file system.
+The returned `url` is relative on purpose: clients resolve it against their own base URL, which keeps
+the value in `reports.image_url` portable between environments. Downloads are public because reports
+themselves are public and image loaders do not send the `Authorization` header.
+
+Files live in `UPLOAD_DIR` on the server's file system, mounted as the `uploads` Docker volume in
+`docker-compose.yml`. Deleting a report also deletes its photo, so the directory does not collect
+orphans. Moving to S3-compatible storage later only changes `FileStorage` and the value returned in
+`url`.
+
+### Users
+
+| Method | URL | Auth | Description |
+|--------|-----|------|-------------|
+| `GET` | `/api/users/{id}` | ✅ | Public profile of a user, used to show report authors by name |
+
+```json
+{ "id": "uuid", "displayName": "Ivan", "role": "USER" }
+```
+
+The response deliberately omits the email address. An unknown id returns `404 Not Found`.
+
+### Achievements
+
+| Method | URL | Auth | Description |
+|--------|-----|------|-------------|
+| `GET` | `/api/achievements` | ✅ | Achievements already unlocked by the current user |
+| `POST` | `/api/achievements/sync` | ✅ | Merge unlocks reported by a client and return the full list |
+
+Achievements are derived from the user's own reports by `AchievementRules`:
+
+| Code | Condition |
+|------|-----------|
+| `FIRST_REPORT` | at least one report submitted |
+| `REPORTER_10` | 10 reports submitted |
+| `FOREST_DEFENDER` | 5 reports of type `FALLEN_TREE` |
+| `PROBLEM_SOLVER` | 5 own reports with status `RESOLVED` |
+| `LEVEL_5` | 400 eco points |
+
+Eco points are `20` per submitted report plus `30` per resolved report, and every `100` points is one
+level, so level 5 starts at 400 points.
+
+The sync endpoint exists because the Android client unlocks achievements offline. The server never
+trusts a claim blindly: it re-evaluates the rules against its own reports and keeps a claimed unlock
+only if the condition currently holds (or the achievement is already stored). For accepted claims the
+earliest unlock time wins, so an achievement earned offline keeps the moment it was actually earned;
+times in the future are clamped to the current time. Eligible achievements the client did not claim
+are unlocked as well, and stored achievements are never revoked.
+
+**Sync body:**
+
+```json
+{
+  "achievements": [
+    { "code": "FIRST_REPORT", "unlockedAt": "2026-04-14T10:15:30Z" }
+  ]
+}
+```
+
+**Response** (both endpoints):
+
+```json
+[
+  { "code": "FIRST_REPORT", "unlockedAt": "2026-04-14T10:15:30Z" }
+]
+```
+
+An unknown `code` or an `unlockedAt` that is not an ISO-8601 instant is rejected with
+`400 Bad Request`.
 
 ### Errors
 
