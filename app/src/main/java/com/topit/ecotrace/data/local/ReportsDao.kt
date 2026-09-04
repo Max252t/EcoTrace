@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReportsDao {
-    @Query("SELECT * FROM reports ORDER BY createdAtEpochSeconds DESC")
+    @Query("SELECT * FROM reports WHERE pendingDeletion = 0 ORDER BY createdAtEpochSeconds DESC")
     fun observeReports(): Flow<List<ReportEntity>>
 
-    @Query("SELECT * FROM reports WHERE id = :id LIMIT 1")
+    @Query("SELECT * FROM reports WHERE id = :id AND pendingDeletion = 0 LIMIT 1")
     suspend fun getById(id: String): ReportEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -27,11 +27,17 @@ interface ReportsDao {
     @Query("UPDATE reports SET status = :status, synced = 0 WHERE id = :id")
     suspend fun updateStatus(id: String, status: String)
 
-    @Query("SELECT * FROM reports WHERE synced = 0")
+    @Query("SELECT * FROM reports WHERE synced = 0 AND pendingDeletion = 0")
     suspend fun getUnsyncedReports(): List<ReportEntity>
 
     @Query("UPDATE reports SET synced = 1 WHERE id IN (:ids)")
     suspend fun markSynced(ids: List<String>)
+
+    @Query("UPDATE reports SET pendingDeletion = 1, synced = 0 WHERE id = :id")
+    suspend fun markPendingDeletion(id: String)
+
+    @Query("SELECT * FROM reports WHERE pendingDeletion = 1")
+    suspend fun getPendingDeletions(): List<ReportEntity>
 
     @Query("DELETE FROM reports WHERE id = :id")
     suspend fun deleteById(id: String)
