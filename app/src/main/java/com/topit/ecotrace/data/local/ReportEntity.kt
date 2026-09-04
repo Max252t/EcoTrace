@@ -1,5 +1,6 @@
 package com.topit.ecotrace.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -16,4 +17,5 @@ data class ReportEntity(
     val authorId: String,
     val createdAtEpochSeconds: Long,
     val synced: Boolean,
+    @ColumnInfo(defaultValue = "0") val pendingDeletion: Boolean = false,
 )
