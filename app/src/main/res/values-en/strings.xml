@@ -37,7 +37,7 @@
     <string name="no_reports_title">No reports yet</string>
     <string name="no_reports_message">Add your first environmental issue\nusing the «+» button on the map</string>
     <string name="resident">City Resident</string>
-    <string name="eco_volunteer">Eco Volunteer · Level 3</string>
+    <string name="eco_volunteer">Eco Volunteer · Level %1$d</string>
     <string name="to_next_level">To next level</string>
     <string name="reports_submitted">Reports\nsubmitted</string>
     <string name="problems_solved">Problems\nsolved</string>
@@ -49,6 +49,13 @@
     <string name="forest_defender_sub">5 reports of fallen trees</string>
     <string name="level_5">Level 5</string>
     <string name="level_5_sub">Reach 400 points</string>
+    <string name="reporter_10">Activist</string>
+    <string name="reporter_10_sub">10 reports submitted</string>
+    <string name="problem_solver">Problem Solver</string>
+    <string name="problem_solver_sub">5 problems solved</string>
+    <string name="level_progress">%1$d / %2$d</string>
+    <string name="achievements_progress">%1$d of %2$d unlocked</string>
+    <string name="author_unknown">Unknown author</string>
     <string name="report_details">Report Details</string>
     <string name="photo_label">Problem photo</string>
     <string name="desc_section">Description</string>

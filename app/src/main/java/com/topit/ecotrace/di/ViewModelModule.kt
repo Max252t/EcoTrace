@@ -5,6 +5,7 @@ import com.topit.ecotrace.presentation.viewmodel.AddReportViewModel
 import com.topit.ecotrace.presentation.viewmodel.AuthViewModel
 import com.topit.ecotrace.presentation.viewmodel.MapViewModel
 import com.topit.ecotrace.presentation.viewmodel.MyReportsViewModel
+import com.topit.ecotrace.presentation.viewmodel.ProfileViewModel
 import com.topit.ecotrace.presentation.viewmodel.ReportDetailsViewModel
 import dagger.Binds
 import dagger.Module
@@ -26,4 +27,7 @@ interface ViewModelModule {
 
     @Binds @IntoMap @ViewModelKey(ReportDetailsViewModel::class)
     fun bindReportDetailsViewModel(viewModel: ReportDetailsViewModel): ViewModel
+
+    @Binds @IntoMap @ViewModelKey(ProfileViewModel::class)
+    fun bindProfileViewModel(viewModel: ProfileViewModel): ViewModel
 }

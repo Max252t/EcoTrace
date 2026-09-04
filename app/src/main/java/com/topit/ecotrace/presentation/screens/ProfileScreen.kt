@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
@@ -35,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +44,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.topit.ecotrace.domain.model.AchievementCode
+import com.topit.ecotrace.presentation.viewmodel.ProfileUiState
+import com.topit.ecotrace.presentation.viewmodel.ProfileViewModel
+import com.topit.ecotrace.presentation.viewmodel.daggerViewModel
+import com.topit.ecotrace.ui.AppStrings
 import com.topit.ecotrace.ui.LocalAppStrings
 
 @Composable
@@ -51,7 +57,24 @@ fun ProfileScreen(
     contentPadding: PaddingValues,
     onSettingsClick: () -> Unit,
 ) {
+    val viewModel: ProfileViewModel = daggerViewModel()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    ProfileContent(
+        contentPadding = contentPadding,
+        onSettingsClick = onSettingsClick,
+        state = state,
+    )
+}
+
+@Composable
+internal fun ProfileContent(
+    contentPadding: PaddingValues,
+    onSettingsClick: () -> Unit,
+    state: ProfileUiState,
+) {
     val s = LocalAppStrings.current
+    val unlockedCodes = state.achievements.map { it.code }.toSet()
 
     Column(
         modifier = Modifier
@@ -97,12 +120,12 @@ fun ProfileScreen(
                     }
                     Column {
                         Text(
-                            s.resident,
+                            state.displayName.ifBlank { s.resident },
                             style = MaterialTheme.typography.titleLarge,
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                         Text(
-                            s.ecoVolunteer,
+                            s.ecoVolunteer(state.stats.level),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
                         )
@@ -129,14 +152,14 @@ fun ProfileScreen(
                                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                             )
                             Text(
-                                "245 / 400",
+                                s.levelProgress(state.stats.ecoPoints, state.stats.pointsForNextLevel),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
                         LinearProgressIndicator(
-                            progress = { 0.61f },
+                            progress = { state.stats.levelProgress },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(8.dp)
@@ -178,19 +201,68 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                StatCard("12", s.reportsSubmitted, Icons.Default.Report, Modifier.weight(1f))
-                StatCard("8", s.problemsSolved, Icons.Default.CheckCircle, Modifier.weight(1f))
-                StatCard("245", s.ecoPoints, Icons.Default.Star, Modifier.weight(1f))
+                StatCard(
+                    state.stats.reportsSubmitted.toString(),
+                    s.reportsSubmitted,
+                    Icons.Default.Report,
+                    Modifier.weight(1f),
+                )
+                StatCard(
+                    state.stats.problemsSolved.toString(),
+                    s.problemsSolved,
+                    Icons.Default.CheckCircle,
+                    Modifier.weight(1f),
+                )
+                StatCard(
+                    state.stats.ecoPoints.toString(),
+                    s.ecoPoints,
+                    Icons.Default.Star,
+                    Modifier.weight(1f),
+                )
             }
 
-            // Achievements
             EcoSection(title = s.achievements) {
-                AchievementRow(Icons.Default.EmojiEvents, s.firstReport, s.firstReportSub, unlocked = true)
-                AchievementRow(Icons.Default.Forest, s.forestDefender, s.forestDefenderSub, unlocked = false)
-                AchievementRow(Icons.Outlined.EmojiEvents, s.level5, s.level5Sub, unlocked = false)
+                Text(
+                    s.achievementsProgress(unlockedCodes.size, AchievementCode.entries.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+                AchievementCode.entries.forEach { code ->
+                    AchievementRow(
+                        icon = code.icon(),
+                        title = code.title(s),
+                        subtitle = code.subtitle(s),
+                        unlocked = code in unlockedCodes,
+                    )
+                }
             }
         }
     }
+}
+
+private fun AchievementCode.icon(): ImageVector = when (this) {
+    AchievementCode.FIRST_REPORT -> Icons.Default.EmojiEvents
+    AchievementCode.REPORTER_10 -> Icons.Default.Report
+    AchievementCode.FOREST_DEFENDER -> Icons.Default.Forest
+    AchievementCode.PROBLEM_SOLVER -> Icons.Default.CheckCircle
+    AchievementCode.LEVEL_5 -> Icons.Default.Star
+}
+
+private fun AchievementCode.title(s: AppStrings): String = when (this) {
+    AchievementCode.FIRST_REPORT -> s.firstReport
+    AchievementCode.REPORTER_10 -> s.reporter10
+    AchievementCode.FOREST_DEFENDER -> s.forestDefender
+    AchievementCode.PROBLEM_SOLVER -> s.problemSolver
+    AchievementCode.LEVEL_5 -> s.level5
+}
+
+private fun AchievementCode.subtitle(s: AppStrings): String = when (this) {
+    AchievementCode.FIRST_REPORT -> s.firstReportSub
+    AchievementCode.REPORTER_10 -> s.reporter10Sub
+    AchievementCode.FOREST_DEFENDER -> s.forestDefenderSub
+    AchievementCode.PROBLEM_SOLVER -> s.problemSolverSub
+    AchievementCode.LEVEL_5 -> s.level5Sub
 }
 
 @Composable
