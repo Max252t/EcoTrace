@@ -32,8 +32,12 @@ services:
       DATABASE_USER: ecotrace
       DATABASE_PASSWORD: ecotrace
       JWT_SECRET: change-me-in-production
+      UPLOAD_DIR: /app/uploads
     ports:
       - "8080:8080"
+    volumes:
+      - uploads:/app/uploads
 
 volumes:
   postgres_data:
+  uploads:

@@ -11,6 +11,7 @@ import javax.inject.Inject
 class SupabaseReportsRemoteDataSource @Inject constructor(
     private val reportsApi: ReportsApi,
     private val sessionStorage: SessionStorage,
+    private val imageUploader: ImageUploader,
 ) : ReportsRemoteDataSource {
     override suspend fun fetchReports(): List<Report> {
         return runCatching { reportsApi.getReports().map { it.toDomain() } }.getOrDefault(emptyList())
@@ -18,7 +19,19 @@ class SupabaseReportsRemoteDataSource @Inject constructor(
 
     override suspend fun createReport(report: Report): Report? {
         if (sessionStorage.token().isNullOrBlank()) return null
-        return runCatching { reportsApi.createReport(report.toCreateRequest()).toDomain() }.getOrNull()
+        val uploaded = withUploadedImage(report) ?: return null
+        return runCatching { reportsApi.createReport(uploaded.toCreateRequest()).toDomain() }.getOrNull()
+    }
+
+    private suspend fun withUploadedImage(report: Report): Report? {
+        val imageUri = report.imageUri ?: return report
+        if (!imageUploader.isLocal(imageUri)) return report
+
+        return when (val result = imageUploader.upload(imageUri)) {
+            is ImageUploadResult.Success -> report.copy(imageUri = result.url)
+            ImageUploadResult.Unavailable -> report.copy(imageUri = null)
+            ImageUploadResult.Failed -> null
+        }
     }
 
     override suspend fun updateStatus(id: String, status: String): Boolean {
@@ -31,7 +44,10 @@ class SupabaseReportsRemoteDataSource @Inject constructor(
 
     override suspend fun deleteReport(id: String): Boolean {
         if (sessionStorage.token().isNullOrBlank()) return false
-        return runCatching { reportsApi.deleteReport(id).isSuccessful }.getOrDefault(false)
+        return runCatching {
+            val response = reportsApi.deleteReport(id)
+            response.isSuccessful || response.code() == HTTP_NOT_FOUND
+        }.getOrDefault(false)
     }
 
     override suspend fun upsertReports(reports: List<Report>): Boolean {
@@ -45,5 +61,9 @@ class SupabaseReportsRemoteDataSource @Inject constructor(
             allSynced = allSynced && ok
         }
         return allSynced
+    }
+
+    private companion object {
+        const val HTTP_NOT_FOUND = 404
     }
 }
