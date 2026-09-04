@@ -14,6 +14,14 @@ object UsersTable : Table("users") {
     override val primaryKey = PrimaryKey(id)
 }
 
+object UserAchievementsTable : Table("user_achievements") {
+    val userId = varchar("user_id", 36).references(UsersTable.id)
+    val code = varchar("code", 64)
+    val unlockedAt = timestamp("unlocked_at")
+
+    override val primaryKey = PrimaryKey(userId, code)
+}
+
 object ReportsTable : Table("reports") {
     val id = varchar("id", 36)
     val title = varchar("title", 255)
