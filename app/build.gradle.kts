@@ -11,32 +11,21 @@ plugins {
 // Work around occasional Windows file-locking of app/build intermediates.
 layout.buildDirectory.set(rootProject.layout.buildDirectory.dir("app-module"))
 
-val yandexMapsApiKey: String = run {
+fun localProperty(key: String, default: String): String {
     val propsFile = rootProject.file("local.properties")
-    if (!propsFile.exists()) {
-        ""
-    } else {
-        propsFile.readLines()
-            .firstOrNull { it.startsWith("yandex.maps.api.key=") }
-            ?.substringAfter("=")
-            ?.trim()
-            .orEmpty()
-    }
+    if (!propsFile.exists()) return default
+    return propsFile.readLines()
+        .firstOrNull { it.startsWith("$key=") }
+        ?.substringAfter("=")
+        ?.trim()
+        .orEmpty()
+        .ifBlank { default }
 }
 
-val backendBaseUrl: String = run {
-    val propsFile = rootProject.file("local.properties")
-    if (!propsFile.exists()) {
-        "http://10.0.2.2:8080/"
-    } else {
-        propsFile.readLines()
-            .firstOrNull { it.startsWith("backend.base.url=") }
-            ?.substringAfter("=")
-            ?.trim()
-            .orEmpty()
-            .ifBlank { "http://10.0.2.2:8080/" }
-    }
-}
+val yandexMapsApiKey: String = localProperty("yandex.maps.api.key", "")
+
+val backendBaseUrl: String = localProperty("backend.base.url", "http://10.0.2.2:8080/")
+    .let { if (it.endsWith("/")) it else "$it/" }
 
 extensions.configure<ApplicationExtension>("android") {
     namespace = "com.topit.ecotrace"

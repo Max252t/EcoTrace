@@ -1,5 +1,6 @@
 package com.topit.ecotrace.di
 
+import com.topit.ecotrace.BuildConfig
 import com.topit.ecotrace.data.local.SessionStorage
 import com.topit.ecotrace.data.remote.api.AuthApi
 import com.topit.ecotrace.data.remote.api.ReportsApi
@@ -44,7 +45,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://192.168.0.136:8080/")
+            .baseUrl(BuildConfig.BACKEND_BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
