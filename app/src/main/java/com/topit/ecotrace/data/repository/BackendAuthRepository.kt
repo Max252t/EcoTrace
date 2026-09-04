@@ -8,6 +8,7 @@ import com.topit.ecotrace.data.remote.api.RegisterRequestDto
 import com.topit.ecotrace.domain.repository.AuthRepository
 import com.topit.ecotrace.domain.repository.AuthSession
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 import retrofit2.HttpException
 
 class BackendAuthRepository @Inject constructor(
@@ -55,6 +56,8 @@ class BackendAuthRepository @Inject constructor(
     }
 
     override fun currentSession(): AuthSession? = sessionStorage.read()
+
+    override fun observeSession(): Flow<AuthSession?> = sessionStorage.session
 
     override fun logout() = sessionStorage.clear()
 }

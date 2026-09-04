@@ -245,5 +245,4 @@ private class FakeReportsRemoteDataSource(
         return true
     }
 
-    override suspend fun upsertReports(reports: List<Report>): Boolean = !offline
 }

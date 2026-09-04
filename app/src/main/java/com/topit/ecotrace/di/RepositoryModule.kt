@@ -5,7 +5,7 @@ import com.topit.ecotrace.data.remote.BackendAchievementsRemoteDataSource
 import com.topit.ecotrace.data.remote.ContentResolverImageSource
 import com.topit.ecotrace.data.remote.LocalImageSource
 import com.topit.ecotrace.data.remote.ReportsRemoteDataSource
-import com.topit.ecotrace.data.remote.SupabaseReportsRemoteDataSource
+import com.topit.ecotrace.data.remote.BackendReportsRemoteDataSource
 import com.topit.ecotrace.data.repository.BackendAuthRepository
 import com.topit.ecotrace.data.repository.BackendUsersRepository
 import com.topit.ecotrace.domain.repository.AuthRepository
@@ -26,7 +26,7 @@ interface RepositoryModule {
 
     @Binds
     @Singleton
-    fun bindRemoteDataSource(impl: SupabaseReportsRemoteDataSource): ReportsRemoteDataSource
+    fun bindRemoteDataSource(impl: BackendReportsRemoteDataSource): ReportsRemoteDataSource
 
     @Binds
     @Singleton

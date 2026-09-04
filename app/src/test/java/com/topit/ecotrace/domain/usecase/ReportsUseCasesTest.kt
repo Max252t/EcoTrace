@@ -144,8 +144,6 @@ private class FakeReportsRepository(
         createdReport = report
     }
 
-    override suspend fun updateReport(report: Report) = Unit
-
     override suspend fun markAsResolved(id: String) {
         markResolvedReportId = id
     }

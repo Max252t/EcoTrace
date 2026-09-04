@@ -28,11 +28,6 @@ class OfflineFirstReportsRepository @Inject constructor(
         syncPending()
     }
 
-    override suspend fun updateReport(report: Report) {
-        reportsDao.update(report.toEntity(synced = false))
-        syncPending()
-    }
-
     override suspend fun markAsResolved(id: String) {
         reportsDao.updateStatus(id, ReportStatus.RESOLVED.name)
         syncPending()

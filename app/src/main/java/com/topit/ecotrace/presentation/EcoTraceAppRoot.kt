@@ -64,6 +64,8 @@ private val hiddenNavRoutes = setOf(
     Screen.Register.route,
 )
 
+private val authRoutes = setOf(Screen.Login.route, Screen.Register.route)
+
 private const val DEFAULT_LAT = 55.751244
 private const val DEFAULT_LON = 37.618423
 
@@ -124,6 +126,11 @@ fun EcoTraceAppRoot() {
         LaunchedEffect(authState.isAuthenticated) {
             if (authState.isAuthenticated) {
                 navController.navigate(Screen.Map.route) {
+                    popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                    launchSingleTop = true
+                }
+            } else if (currentDestination?.route !in authRoutes) {
+                navController.navigate(Screen.Login.route) {
                     popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
                     launchSingleTop = true
                 }
