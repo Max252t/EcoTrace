@@ -1,5 +1,6 @@
 package com.ecotrace.backend.routes
 
+import com.ecotrace.backend.data.storage.FileStorage
 import com.ecotrace.backend.domain.model.CreateReportRequest
 import com.ecotrace.backend.domain.model.ProblemType
 import com.ecotrace.backend.domain.model.Report
@@ -23,7 +24,10 @@ import io.ktor.server.routing.route
 import java.time.Instant
 import java.util.UUID
 
-fun Route.reportsRoutes(reportsRepository: ReportsRepository) {
+fun Route.reportsRoutes(
+    reportsRepository: ReportsRepository,
+    fileStorage: FileStorage,
+) {
     route("/api/reports") {
 
         // GET /api/reports?type=DUMP&status=OPEN  — публичный
@@ -121,6 +125,7 @@ fun Route.reportsRoutes(reportsRepository: ReportsRepository) {
                 }
 
                 reportsRepository.delete(id)
+                fileStorage.delete(existing.imageUrl)
                 call.respond(HttpStatusCode.NoContent)
             }
         }

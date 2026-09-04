@@ -2,8 +2,11 @@ package com.topit.ecotrace.di
 
 import com.topit.ecotrace.BuildConfig
 import com.topit.ecotrace.data.local.SessionStorage
+import com.topit.ecotrace.data.remote.api.AchievementsApi
 import com.topit.ecotrace.data.remote.api.AuthApi
+import com.topit.ecotrace.data.remote.api.FilesApi
 import com.topit.ecotrace.data.remote.api.ReportsApi
+import com.topit.ecotrace.data.remote.api.UsersApi
 import dagger.Module
 import dagger.Provides
 import okhttp3.Interceptor
@@ -58,4 +61,17 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideReportsApi(retrofit: Retrofit): ReportsApi = retrofit.create(ReportsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAchievementsApi(retrofit: Retrofit): AchievementsApi =
+        retrofit.create(AchievementsApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUsersApi(retrofit: Retrofit): UsersApi = retrofit.create(UsersApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFilesApi(retrofit: Retrofit): FilesApi = retrofit.create(FilesApi::class.java)
 }

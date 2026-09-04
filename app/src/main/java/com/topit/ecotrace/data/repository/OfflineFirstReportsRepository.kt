@@ -39,12 +39,16 @@ class OfflineFirstReportsRepository @Inject constructor(
     }
 
     override suspend fun deleteReport(id: String) {
-        reportsDao.deleteById(id)
-        remoteDataSource.deleteReport(id)
+        reportsDao.markPendingDeletion(id)
+        syncDeletions()
     }
 
     override suspend fun syncPending() {
+        syncDeletions()
+
+        val pendingDeletionIds = reportsDao.getPendingDeletions().map { it.id }.toSet()
         val remoteReports = remoteDataSource.fetchReports()
+            .filterNot { it.id in pendingDeletionIds }
         if (remoteReports.isNotEmpty()) {
             reportsDao.insertAll(remoteReports.map { it.toEntity(synced = true) })
         }
@@ -73,6 +77,14 @@ class OfflineFirstReportsRepository @Inject constructor(
 
             if (synced) {
                 reportsDao.markSynced(listOf(report.id))
+            }
+        }
+    }
+
+    private suspend fun syncDeletions() {
+        reportsDao.getPendingDeletions().forEach { entity ->
+            if (remoteDataSource.deleteReport(entity.id)) {
+                reportsDao.deleteById(entity.id)
             }
         }
     }

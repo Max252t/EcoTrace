@@ -47,6 +47,19 @@ data class UserResponse(
     val createdAt: String,
 )
 
+@Serializable
+data class PublicUserResponse(
+    val id: String,
+    val displayName: String,
+    val role: String,
+)
+
+fun User.toPublicResponse() = PublicUserResponse(
+    id = id,
+    displayName = displayName,
+    role = role.name,
+)
+
 fun User.toResponse() = UserResponse(
     id = id,
     email = email,

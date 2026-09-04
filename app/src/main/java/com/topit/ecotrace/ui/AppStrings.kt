@@ -52,7 +52,7 @@ data class AppStrings(
     val noReportsMessage: String,
     // Profile
     val resident: String,
-    val ecoVolunteer: String,
+    val ecoVolunteer: (Int) -> String,
     val toNextLevel: String,
     val reportsSubmitted: String,
     val problemsSolved: String,
@@ -64,6 +64,12 @@ data class AppStrings(
     val forestDefenderSub: String,
     val level5: String,
     val level5Sub: String,
+    val reporter10: String,
+    val reporter10Sub: String,
+    val problemSolver: String,
+    val problemSolverSub: String,
+    val levelProgress: (Int, Int) -> String,
+    val achievementsProgress: (Int, Int) -> String,
     // Report details
     val reportDetails: String,
     val photoLabel: String,
@@ -73,6 +79,7 @@ data class AppStrings(
     val typeInfoLabel: String,
     val statusInfoLabel: String,
     val authorLabel: String,
+    val authorUnknown: String,
     val routeButton: String,
     val markResolved: String,
     val statusOpenLong: String,
@@ -180,7 +187,7 @@ fun appStringsFor(context: Context, language: AppLanguage): AppStrings = AppStri
     noReportsTitle = context.localizedString(language, R.string.no_reports_title),
     noReportsMessage = context.localizedString(language, R.string.no_reports_message),
     resident = context.localizedString(language, R.string.resident),
-    ecoVolunteer = context.localizedString(language, R.string.eco_volunteer),
+    ecoVolunteer = { level -> context.localizedString(language, R.string.eco_volunteer, level) },
     toNextLevel = context.localizedString(language, R.string.to_next_level),
     reportsSubmitted = context.localizedString(language, R.string.reports_submitted),
     problemsSolved = context.localizedString(language, R.string.problems_solved),
@@ -192,6 +199,16 @@ fun appStringsFor(context: Context, language: AppLanguage): AppStrings = AppStri
     forestDefenderSub = context.localizedString(language, R.string.forest_defender_sub),
     level5 = context.localizedString(language, R.string.level_5),
     level5Sub = context.localizedString(language, R.string.level_5_sub),
+    reporter10 = context.localizedString(language, R.string.reporter_10),
+    reporter10Sub = context.localizedString(language, R.string.reporter_10_sub),
+    problemSolver = context.localizedString(language, R.string.problem_solver),
+    problemSolverSub = context.localizedString(language, R.string.problem_solver_sub),
+    levelProgress = { points, target ->
+        context.localizedString(language, R.string.level_progress, points, target)
+    },
+    achievementsProgress = { unlocked, total ->
+        context.localizedString(language, R.string.achievements_progress, unlocked, total)
+    },
     reportDetails = context.localizedString(language, R.string.report_details),
     photoLabel = context.localizedString(language, R.string.photo_label),
     descSection = context.localizedString(language, R.string.desc_section),
@@ -200,6 +217,7 @@ fun appStringsFor(context: Context, language: AppLanguage): AppStrings = AppStri
     typeInfoLabel = context.localizedString(language, R.string.type_info_label),
     statusInfoLabel = context.localizedString(language, R.string.status_info_label),
     authorLabel = context.localizedString(language, R.string.author_label),
+    authorUnknown = context.localizedString(language, R.string.author_unknown),
     routeButton = context.localizedString(language, R.string.route_button),
     markResolved = context.localizedString(language, R.string.mark_resolved),
     statusOpenLong = context.localizedString(language, R.string.status_open_long),
