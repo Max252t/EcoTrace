@@ -1,6 +1,10 @@
 package com.topit.ecotrace.data.local
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.topit.ecotrace.domain.repository.AuthSession
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,7 +14,7 @@ import javax.inject.Singleton
 
 @Singleton
 class SessionStorage @Inject constructor(context: Context) {
-    private val prefs = context.getSharedPreferences("ecotrace_session", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = encryptedPrefs(context)
 
     private val _session = MutableStateFlow(readFromPrefs())
     val session: StateFlow<AuthSession?> = _session.asStateFlow()
@@ -49,7 +53,26 @@ class SessionStorage @Inject constructor(context: Context) {
         )
     }
 
+    private fun encryptedPrefs(context: Context): SharedPreferences = runCatching {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            ENCRYPTED_PREFS,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+    }.getOrElse { error ->
+        Log.e(TAG, "Encrypted storage is unavailable, falling back to plain preferences", error)
+        context.getSharedPreferences(PLAIN_PREFS, Context.MODE_PRIVATE)
+    }
+
     private companion object {
+        const val TAG = "SessionStorage"
+        const val ENCRYPTED_PREFS = "ecotrace_session_secure"
+        const val PLAIN_PREFS = "ecotrace_session"
         const val KEY_TOKEN = "token"
         const val KEY_USER_ID = "user_id"
         const val KEY_EMAIL = "email"
