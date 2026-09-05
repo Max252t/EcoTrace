@@ -16,12 +16,14 @@ The repository contains two independent Gradle projects:
 - Map of reports with colour-coded markers by status (open, in progress, resolved)
 - Long press on the map creates a new report at that point
 - Report creation with a photo from the camera or gallery, problem type and manual location picking
-- Photos are uploaded to the server on synchronisation, so they are visible on every device
+- Photos are downscaled to 1920 px and uploaded to the server on synchronisation, so they are
+  visible on every device
 - Filtering by problem type and status
-- Report status workflow: the author of a report and administrators move it between open, in
-  progress and resolved; everyone else sees the status read-only
+- Report status workflow: the author moves a report between open and in progress, only an
+  administrator marks it resolved; everyone else sees the status read-only
 - Personal list of reports with a shortcut for resolving and deletion
-- Email and password authentication with a JWT session stored on the device
+- Email and password authentication with a JWT session kept in `EncryptedSharedPreferences`,
+  excluded from cloud backups and dropped as soon as the server rejects it with `401`
 - Offline-first storage: reports are kept in Room and synchronised with the server when it is
   reachable — creation, status changes and deletion all survive being offline
 - Profile with statistics, eco points and levels calculated from the user's own reports
@@ -120,8 +122,12 @@ cp local.properties.example local.properties
 - `http://<host-lan-ip>:8080/` for a physical device on the same network
 - `https://<your-domain>/` for a deployed server
 
-Cleartext HTTP traffic is allowed in the manifest so that local development against a plain HTTP
-server works out of the box.
+Cleartext HTTP is allowed only in debug builds and only for `10.0.2.2`, `localhost` and `127.0.0.1`
+(`app/src/debug/res/xml/network_security_config.xml`). A release build talks HTTPS only. To test a
+debug build against a backend on the LAN, add that address to the debug network security config.
+
+Release builds run R8 with `isMinifyEnabled` and resource shrinking; the keep rules for the Retrofit
+DTOs live in `app/proguard-rules.pro`.
 
 ### Build and run
 
@@ -168,8 +174,12 @@ request against it, in two parallel jobs:
 
 | Job | Steps |
 |-----|-------|
-| Android app | `:app:testDebugUnitTest`, `:app:assembleDebug`, uploads the test report and the debug APK |
-| Backend | `-p backend test`, `-p backend buildFatJar`, uploads the test report |
+| Android app | `:app:ktlintCheck`, `:app:testDebugUnitTest`, `:app:assembleDebug`, uploads the test report and the debug APK |
+| Backend | `-p backend ktlintCheck`, `-p backend test`, `-p backend buildFatJar`, uploads the test report |
+
+Formatting is checked by ktlint. Violations that already existed when the check was introduced are
+recorded in `app/config/ktlint/baseline.xml` and `backend/config/ktlint/baseline.xml`, so the rules
+apply to new code; run `./gradlew :app:ktlintFormat` before committing.
 
 Both jobs run on JDK 21, which is the toolchain the Gradle daemon is pinned to in
 `gradle/gradle-daemon-jvm.properties`. Instrumented tests are not part of CI because they need an
