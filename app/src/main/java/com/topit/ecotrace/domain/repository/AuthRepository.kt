@@ -10,6 +10,17 @@ data class AuthSession(
     val role: String,
 )
 
+enum class AuthError {
+    INVALID_CREDENTIALS,
+    EMAIL_TAKEN,
+    INVALID_DATA,
+    TOO_MANY_ATTEMPTS,
+    SERVER,
+    NETWORK,
+}
+
+class AuthFailure(val error: AuthError) : Exception(error.name)
+
 interface AuthRepository {
     suspend fun login(email: String, password: String): Result<AuthSession>
     suspend fun register(name: String, email: String, password: String): Result<AuthSession>
