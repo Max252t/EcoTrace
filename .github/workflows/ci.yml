@@ -33,6 +33,9 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Formatting
+        run: ./gradlew :app:ktlintCheck
+
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest
 
@@ -73,8 +76,14 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Formatting
+        run: ./gradlew -p backend ktlintCheck
+
       - name: Unit tests
         run: ./gradlew -p backend test
+        env:
+          JWT_SECRET: ci-test-secret
+          DATABASE_PASSWORD: ci-test-password
 
       - name: Build fat JAR
         run: ./gradlew -p backend buildFatJar
