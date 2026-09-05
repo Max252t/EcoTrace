@@ -13,12 +13,14 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.runBlocking
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.io.IOException
 import java.time.Instant
 
-class SupabaseReportsRemoteDataSourceTest {
+class BackendReportsRemoteDataSourceTest {
 
     private val reportsApi: ReportsApi = mockk()
     private val sessionStorage: SessionStorage = mockk()
@@ -88,6 +90,50 @@ class SupabaseReportsRemoteDataSourceTest {
     }
 
     @Test
+    fun updateStatus_reportsUpdatedWhenServerAcceptsNewStatus() = runBlocking {
+        every { sessionStorage.token() } returns TOKEN
+        coEvery { reportsApi.updateStatus("r-1", any()) } returns responseDto(null)
+
+        val result = dataSource().updateStatus("r-1", ReportStatus.IN_PROGRESS.name)
+
+        assertEquals(StatusUpdateResult.UPDATED, result)
+    }
+
+    @Test
+    fun updateStatus_reportsNotFoundForReportMissingOnServer() = runBlocking {
+        every { sessionStorage.token() } returns TOKEN
+        coEvery { reportsApi.updateStatus("r-1", any()) } throws httpException(404)
+
+        val result = dataSource().updateStatus("r-1", ReportStatus.IN_PROGRESS.name)
+
+        assertEquals(StatusUpdateResult.NOT_FOUND, result)
+    }
+
+    @Test
+    fun updateStatus_reportsFailureWhenServerIsUnreachable() = runBlocking {
+        every { sessionStorage.token() } returns TOKEN
+        coEvery { reportsApi.updateStatus("r-1", any()) } throws IOException("offline")
+
+        val result = dataSource().updateStatus("r-1", ReportStatus.IN_PROGRESS.name)
+
+        assertEquals(StatusUpdateResult.FAILED, result)
+    }
+
+    @Test
+    fun updateStatus_isSkippedForSignedOutUser() = runBlocking {
+        every { sessionStorage.token() } returns null
+
+        val result = dataSource().updateStatus("r-1", ReportStatus.RESOLVED.name)
+
+        assertEquals(StatusUpdateResult.FAILED, result)
+        coVerify(exactly = 0) { reportsApi.updateStatus(any(), any()) }
+    }
+
+    private fun httpException(code: Int) = retrofit2.HttpException(
+        retrofit2.Response.error<Unit>(code, "".toResponseBody(null)),
+    )
+
+    @Test
     fun createReport_isSkippedForSignedOutUser() = runBlocking {
         every { sessionStorage.token() } returns null
 
@@ -97,7 +143,7 @@ class SupabaseReportsRemoteDataSourceTest {
     }
 
     private fun dataSource() =
-        SupabaseReportsRemoteDataSource(reportsApi, sessionStorage, imageUploader)
+        BackendReportsRemoteDataSource(reportsApi, sessionStorage, imageUploader)
 
     private fun report(imageUri: String?) = Report(
         id = "r-1",

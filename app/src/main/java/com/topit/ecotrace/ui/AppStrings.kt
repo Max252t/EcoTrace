@@ -80,6 +80,7 @@ data class AppStrings(
     val statusInfoLabel: String,
     val authorLabel: String,
     val authorUnknown: String,
+    val sessionExpired: String,
     val routeButton: String,
     val markResolved: String,
     val statusOpenLong: String,
@@ -93,8 +94,6 @@ data class AppStrings(
     // Location picker
     val pickLocationTitle: String,
     val pickLocationSubtitle: String,
-    val mapPlaceholder: String,
-    val tapToPickDemo: String,
     val locationSelected: String,
     val confirmLocation: String,
     // Settings
@@ -218,6 +217,7 @@ fun appStringsFor(context: Context, language: AppLanguage): AppStrings = AppStri
     statusInfoLabel = context.localizedString(language, R.string.status_info_label),
     authorLabel = context.localizedString(language, R.string.author_label),
     authorUnknown = context.localizedString(language, R.string.author_unknown),
+    sessionExpired = context.localizedString(language, R.string.session_expired),
     routeButton = context.localizedString(language, R.string.route_button),
     markResolved = context.localizedString(language, R.string.mark_resolved),
     statusOpenLong = context.localizedString(language, R.string.status_open_long),
@@ -229,8 +229,6 @@ fun appStringsFor(context: Context, language: AppLanguage): AppStrings = AppStri
     resetAll = context.localizedString(language, R.string.reset_all),
     pickLocationTitle = context.localizedString(language, R.string.pick_location_title),
     pickLocationSubtitle = context.localizedString(language, R.string.pick_location_subtitle),
-    mapPlaceholder = context.localizedString(language, R.string.map_placeholder),
-    tapToPickDemo = context.localizedString(language, R.string.tap_to_pick_demo),
     locationSelected = context.localizedString(language, R.string.location_selected),
     confirmLocation = context.localizedString(language, R.string.confirm_location),
     settingsTitle = context.localizedString(language, R.string.settings_title),

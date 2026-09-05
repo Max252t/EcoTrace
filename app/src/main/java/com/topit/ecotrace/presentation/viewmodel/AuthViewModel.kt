@@ -29,6 +29,14 @@ class AuthViewModel @Inject constructor(
     )
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            authRepository.observeSession().collect { session ->
+                _uiState.update { it.copy(isAuthenticated = session != null, session = session) }
+            }
+        }
+    }
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }

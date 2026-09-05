@@ -96,6 +96,7 @@ fun AddReportScreen(
     var title by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var sessionExpired by remember { mutableStateOf(false) }
 
     // Temp URI for TakePicture — created before launching camera
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -342,10 +343,18 @@ fun AddReportScreen(
                     }
                 }
 
+                if (sessionExpired) {
+                    Text(
+                        s.sessionExpired,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
                 // ── Submit ────────────────────────────────────────────────────
                 Button(
                     onClick = {
-                        viewModel.createDraftReport(
+                        val created = viewModel.createDraftReport(
                             title = title.ifBlank { s.addReportTitle },
                             description = description.ifBlank { "—" },
                             type = selectedType,
@@ -353,7 +362,7 @@ fun AddReportScreen(
                             longitude = reportLon,
                             imageUri = selectedImageUri?.toString(),
                         )
-                        onBack()
+                        if (created) onBack() else sessionExpired = true
                     },
                     modifier = Modifier
                         .fillMaxWidth()

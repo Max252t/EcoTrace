@@ -4,6 +4,7 @@ import com.topit.ecotrace.data.local.ReportsDao
 import com.topit.ecotrace.data.mapper.toDomain
 import com.topit.ecotrace.data.mapper.toEntity
 import com.topit.ecotrace.data.remote.ReportsRemoteDataSource
+import com.topit.ecotrace.data.remote.StatusUpdateResult
 import com.topit.ecotrace.domain.model.Report
 import com.topit.ecotrace.domain.model.ReportStatus
 import com.topit.ecotrace.domain.repository.ReportsRepository
@@ -28,13 +29,8 @@ class OfflineFirstReportsRepository @Inject constructor(
         syncPending()
     }
 
-    override suspend fun updateReport(report: Report) {
-        reportsDao.update(report.toEntity(synced = false))
-        syncPending()
-    }
-
-    override suspend fun markAsResolved(id: String) {
-        reportsDao.updateStatus(id, ReportStatus.RESOLVED.name)
+    override suspend fun updateStatus(id: String, status: ReportStatus) {
+        reportsDao.updateStatus(id, status.name)
         syncPending()
     }
 
@@ -46,39 +42,39 @@ class OfflineFirstReportsRepository @Inject constructor(
     override suspend fun syncPending() {
         syncDeletions()
 
-        val pendingDeletionIds = reportsDao.getPendingDeletions().map { it.id }.toSet()
+        val unsynced = reportsDao.getUnsyncedReports()
+        val locallyChangedIds = reportsDao.getPendingDeletions().map { it.id }.toSet() +
+            unsynced.map { it.id }.toSet()
+
         val remoteReports = remoteDataSource.fetchReports()
-            .filterNot { it.id in pendingDeletionIds }
+            .filterNot { it.id in locallyChangedIds }
         if (remoteReports.isNotEmpty()) {
             reportsDao.insertAll(remoteReports.map { it.toEntity(synced = true) })
         }
 
-        val unsynced = reportsDao.getUnsyncedReports()
         if (unsynced.isEmpty()) return
 
         unsynced.forEach { entity ->
             val report = entity.toDomain()
-            val synced = if (report.status == ReportStatus.OPEN) {
-                val created = remoteDataSource.createReport(report)
-                if (created != null) {
-                    reportsDao.insert(created.toEntity(synced = true))
-                    if (created.id != report.id) {
-                        reportsDao.deleteById(report.id)
-                    } else {
-                        reportsDao.markSynced(listOf(report.id))
-                    }
-                    true
-                } else {
-                    false
-                }
-            } else {
-                remoteDataSource.updateStatus(report.id, report.status.name)
+            val synced = when (remoteDataSource.updateStatus(report.id, report.status.name)) {
+                StatusUpdateResult.UPDATED -> true
+                StatusUpdateResult.NOT_FOUND -> uploadReport(report)
+                StatusUpdateResult.FAILED -> false
             }
 
             if (synced) {
                 reportsDao.markSynced(listOf(report.id))
             }
         }
+    }
+
+    private suspend fun uploadReport(report: Report): Boolean {
+        val created = remoteDataSource.createReport(report) ?: return false
+        reportsDao.insert(created.toEntity(synced = true))
+        if (created.id != report.id) {
+            reportsDao.deleteById(report.id)
+        }
+        return true
     }
 
     private suspend fun syncDeletions() {

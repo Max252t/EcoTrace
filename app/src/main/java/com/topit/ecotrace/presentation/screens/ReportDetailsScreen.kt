@@ -8,6 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,7 +25,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Pending
@@ -32,12 +33,12 @@ import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -67,14 +68,38 @@ private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
 
 @Composable
 fun ReportDetailsScreen(contentPadding: PaddingValues, onBack: () -> Unit, reportId: String) {
-    val s = LocalAppStrings.current
-    val context = LocalContext.current
     val viewModel: ReportDetailsViewModel = daggerViewModel()
     val report by viewModel.report.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val authorName by viewModel.authorName.collectAsStateWithLifecycle()
+    val canChangeStatus by viewModel.canChangeStatus.collectAsStateWithLifecycle()
 
     LaunchedEffect(reportId) { viewModel.load(reportId) }
+
+    ReportDetailsContent(
+        contentPadding = contentPadding,
+        onBack = onBack,
+        report = report,
+        isLoading = isLoading,
+        authorName = authorName,
+        canChangeStatus = canChangeStatus,
+        onStatusChange = { status -> viewModel.updateStatus(reportId, status) },
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun ReportDetailsContent(
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+    report: Report?,
+    isLoading: Boolean,
+    authorName: String?,
+    canChangeStatus: Boolean,
+    onStatusChange: (ReportStatus) -> Unit,
+) {
+    val s = LocalAppStrings.current
+    val context = LocalContext.current
 
     AdaptiveContent {
         Column(
@@ -183,16 +208,27 @@ fun ReportDetailsScreen(contentPadding: PaddingValues, onBack: () -> Unit, repor
                     Text(s.routeButton, style = MaterialTheme.typography.labelLarge, fontSize = 15.sp)
                 }
 
-                if (currentReport.status != ReportStatus.RESOLVED) {
-                    OutlinedButton(
-                        onClick = { viewModel.markResolved(reportId) },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                    ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text(s.markResolved, style = MaterialTheme.typography.labelLarge, fontSize = 15.sp)
+                if (canChangeStatus) {
+                    EcoSection(title = s.statusInfoLabel) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            ReportStatus.entries.forEach { status ->
+                                val (chipBg, chipFg) = statusColors(status)
+                                FilterChip(
+                                    selected = status == currentReport.status,
+                                    onClick = { onStatusChange(status) },
+                                    label = {
+                                        Text(statusLabel(status), style = MaterialTheme.typography.labelLarge)
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = chipBg,
+                                        selectedLabelColor = chipFg,
+                                    ),
+                                )
+                            }
+                        }
                     }
                 }
 
