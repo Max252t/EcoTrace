@@ -7,6 +7,7 @@ import com.topit.ecotrace.data.remote.api.ReportsApi
 import com.topit.ecotrace.data.remote.api.UpdateStatusRequestDto
 import com.topit.ecotrace.domain.model.Report
 import javax.inject.Inject
+import retrofit2.HttpException
 
 class BackendReportsRemoteDataSource @Inject constructor(
     private val reportsApi: ReportsApi,
@@ -34,12 +35,18 @@ class BackendReportsRemoteDataSource @Inject constructor(
         }
     }
 
-    override suspend fun updateStatus(id: String, status: String): Boolean {
-        if (sessionStorage.token().isNullOrBlank()) return false
+    override suspend fun updateStatus(id: String, status: String): StatusUpdateResult {
+        if (sessionStorage.token().isNullOrBlank()) return StatusUpdateResult.FAILED
         return runCatching {
             reportsApi.updateStatus(id, UpdateStatusRequestDto(status))
-            true
-        }.getOrDefault(false)
+            StatusUpdateResult.UPDATED
+        }.getOrElse { error ->
+            if (error is HttpException && error.code() == HTTP_NOT_FOUND) {
+                StatusUpdateResult.NOT_FOUND
+            } else {
+                StatusUpdateResult.FAILED
+            }
+        }
     }
 
     override suspend fun deleteReport(id: String): Boolean {

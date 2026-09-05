@@ -3,10 +3,11 @@ package com.topit.ecotrace.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.topit.ecotrace.domain.model.Report
+import com.topit.ecotrace.domain.model.ReportStatus
 import com.topit.ecotrace.domain.usecase.DeleteReportUseCase
 import com.topit.ecotrace.domain.usecase.GetMyReportsUseCase
-import com.topit.ecotrace.domain.usecase.MarkReportResolvedUseCase
 import com.topit.ecotrace.domain.usecase.SyncReportsUseCase
+import com.topit.ecotrace.domain.usecase.UpdateReportStatusUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -16,7 +17,7 @@ import javax.inject.Inject
 class MyReportsViewModel @Inject constructor(
     getMyReportsUseCase: GetMyReportsUseCase,
     private val syncReportsUseCase: SyncReportsUseCase,
-    private val markReportResolvedUseCase: MarkReportResolvedUseCase,
+    private val updateReportStatusUseCase: UpdateReportStatusUseCase,
     private val deleteReportUseCase: DeleteReportUseCase,
 ) : ViewModel() {
 
@@ -28,7 +29,7 @@ class MyReportsViewModel @Inject constructor(
     }
 
     fun markResolved(reportId: String) {
-        viewModelScope.launch { markReportResolvedUseCase(reportId) }
+        viewModelScope.launch { updateReportStatusUseCase(reportId, ReportStatus.RESOLVED) }
     }
 
     fun deleteReport(reportId: String) {

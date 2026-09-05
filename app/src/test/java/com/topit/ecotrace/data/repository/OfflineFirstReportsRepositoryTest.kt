@@ -4,6 +4,7 @@ import com.topit.ecotrace.data.local.ReportEntity
 import com.topit.ecotrace.data.local.ReportsDao
 import com.topit.ecotrace.data.mapper.toEntity
 import com.topit.ecotrace.data.remote.ReportsRemoteDataSource
+import com.topit.ecotrace.data.remote.StatusUpdateResult
 import com.topit.ecotrace.domain.model.ProblemType
 import com.topit.ecotrace.domain.model.Report
 import com.topit.ecotrace.domain.model.ReportStatus
@@ -116,6 +117,48 @@ class OfflineFirstReportsRepositoryTest {
     }
 
     @Test
+    fun updateStatus_storesStatusLocallyWhileOffline() = runBlocking {
+        val dao = FakeReportsDao(listOf(entity("r-1")))
+        val remote = FakeReportsRemoteDataSource(offline = true)
+        val repository = repository(dao, remote)
+
+        repository.updateStatus("r-1", ReportStatus.IN_PROGRESS)
+
+        val stored = dao.rows().single()
+        assertEquals(ReportStatus.IN_PROGRESS.name, stored.status)
+        assertFalse(stored.synced)
+        assertEquals(emptyList<Pair<String, String>>(), remote.statusUpdates)
+    }
+
+    @Test
+    fun updateStatus_pushesInProgressToServerWhenOnline() = runBlocking {
+        val report = report("r-1")
+        val dao = FakeReportsDao(listOf(entity("r-1")))
+        val remote = FakeReportsRemoteDataSource(serverReports = listOf(report))
+        val repository = repository(dao, remote)
+
+        repository.updateStatus("r-1", ReportStatus.IN_PROGRESS)
+
+        assertEquals(listOf("r-1" to ReportStatus.IN_PROGRESS.name), remote.statusUpdates)
+        assertEquals(ReportStatus.IN_PROGRESS.name, dao.rows().single().status)
+        assertTrue(dao.rows().single().synced)
+    }
+
+    @Test
+    fun syncPending_uploadsReportThatServerDoesNotKnowYet() = runBlocking {
+        val dao = FakeReportsDao(
+            listOf(entity("r-1", synced = false, status = ReportStatus.IN_PROGRESS)),
+        )
+        val remote = FakeReportsRemoteDataSource()
+        val repository = repository(dao, remote)
+
+        repository.syncPending()
+
+        assertEquals(listOf("r-1"), remote.createdReports.map { it.id })
+        assertTrue(dao.rows().single().synced)
+    }
+
+    @Test
     fun createReport_storesReportLocallyAsUnsynced() = runBlocking {
         val dao = FakeReportsDao()
         val remote = FakeReportsRemoteDataSource(offline = true)
@@ -162,7 +205,11 @@ class OfflineFirstReportsRepositoryTest {
         synced = false,
     )
 
-    private fun entity(id: String, synced: Boolean = true) = report(id).toEntity(synced = synced)
+    private fun entity(
+        id: String,
+        synced: Boolean = true,
+        status: ReportStatus = ReportStatus.OPEN,
+    ) = report(id, status).toEntity(synced = synced)
 }
 
 private class FakeReportsDao(initial: List<ReportEntity> = emptyList()) : ReportsDao {
@@ -229,15 +276,26 @@ private class FakeReportsRemoteDataSource(
     var createdReports: List<Report> = emptyList()
         private set
 
+    var statusUpdates: List<Pair<String, String>> = emptyList()
+        private set
+
+    private val knownIds: MutableSet<String> = serverReports.map { it.id }.toMutableSet()
+
     override suspend fun fetchReports(): List<Report> = if (offline) emptyList() else serverReports
 
     override suspend fun createReport(report: Report): Report? {
         if (offline) return null
         createdReports = createdReports + report
+        knownIds += report.id
         return report.copy(synced = true)
     }
 
-    override suspend fun updateStatus(id: String, status: String): Boolean = !offline
+    override suspend fun updateStatus(id: String, status: String): StatusUpdateResult {
+        if (offline) return StatusUpdateResult.FAILED
+        if (id !in knownIds) return StatusUpdateResult.NOT_FOUND
+        statusUpdates = statusUpdates + (id to status)
+        return StatusUpdateResult.UPDATED
+    }
 
     override suspend fun deleteReport(id: String): Boolean {
         if (offline || offlineForDelete || !deletionAllowed) return false
