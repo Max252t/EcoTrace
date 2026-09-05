@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.ktlint)
 }
 
 // Work around occasional Windows file-locking of app/build intermediates.
@@ -23,6 +24,9 @@ fun localProperty(key: String, default: String): String {
 }
 
 val yandexMapsApiKey: String = localProperty("yandex.maps.api.key", "")
+if (yandexMapsApiKey.isBlank()) {
+    logger.warn("yandex.maps.api.key is not set in local.properties; the map will not work")
+}
 
 val backendBaseUrl: String = localProperty("backend.base.url", "http://10.0.2.2:8080/")
     .let { if (it.endsWith("/")) it else "$it/" }
@@ -45,7 +49,8 @@ extensions.configure<ApplicationExtension>("android") {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -59,6 +64,10 @@ extensions.configure<ApplicationExtension>("android") {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
@@ -82,6 +91,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.dagger)
