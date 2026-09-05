@@ -47,12 +47,13 @@ object AchievementRules {
         claimed: List<Achievement>,
         eligible: Set<AchievementCode>,
         now: Instant,
+        notBefore: Instant = Instant.EPOCH,
     ): List<Achievement> {
         val merged = stored.associateByTo(mutableMapOf()) { it.code }
 
         claimed.forEach { achievement ->
             if (achievement.code !in eligible && achievement.code !in merged) return@forEach
-            val unlockedAt = minOf(achievement.unlockedAt, now)
+            val unlockedAt = achievement.unlockedAt.coerceIn(minOf(notBefore, now), now)
             val current = merged[achievement.code]
             if (current == null || unlockedAt.isBefore(current.unlockedAt)) {
                 merged[achievement.code] = Achievement(

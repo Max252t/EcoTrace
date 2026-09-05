@@ -8,6 +8,8 @@ interface ReportsRepository {
     suspend fun getAll(
         type: ProblemType? = null,
         status: ReportStatus? = null,
+        limit: Int = 100,
+        offset: Long = 0,
     ): List<Report>
 
     suspend fun getById(id: String): Report?

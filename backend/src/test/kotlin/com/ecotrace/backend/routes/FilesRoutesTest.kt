@@ -3,6 +3,7 @@ package com.ecotrace.backend.routes
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.ecotrace.backend.data.storage.FileStorage
+import com.ecotrace.backend.domain.repository.UploadsRepository
 import com.ecotrace.backend.plugins.configureSerialization
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
@@ -74,7 +75,7 @@ class FilesRoutesTest {
     fun upload_rejectsUnsupportedType() = testApplication {
         installFileRoutes()
 
-        val response = uploadPhoto(PHOTO, "application/pdf", "document.pdf")
+        val response = uploadPhoto("%PDF-1.7 not an image".toByteArray(), "image/png", "document.png")
 
         assertEquals(HttpStatusCode.UnsupportedMediaType, response.status)
         assertEquals(0, directory.listFiles()?.size)
@@ -84,7 +85,7 @@ class FilesRoutesTest {
     fun upload_rejectsFileOverTheLimit() = testApplication {
         installFileRoutes(maxFileSizeBytes = 4)
 
-        val response = uploadPhoto(ByteArray(16), "image/png", "photo.png")
+        val response = uploadPhoto(PHOTO, "image/png", "photo.png")
 
         assertEquals(HttpStatusCode.PayloadTooLarge, response.status)
     }
@@ -108,6 +109,8 @@ class FilesRoutesTest {
         assertEquals(HttpStatusCode.NotFound, client.get("${FileStorage.ROUTE}/missing.jpg").status)
     }
 
+    private val uploads = FakeUploadsRepository()
+
     private fun ApplicationTestBuilder.installFileRoutes(maxFileSizeBytes: Long = 1024 * 1024) {
         val storage = FileStorage(directory, maxFileSizeBytes)
         application {
@@ -119,7 +122,7 @@ class FilesRoutesTest {
                 }
             }
             routing {
-                filesRoutes(storage)
+                filesRoutes(storage, uploads)
                 staticFiles(FileStorage.ROUTE, storage.directory)
             }
         }
@@ -156,6 +159,22 @@ class FilesRoutesTest {
     private companion object {
         const val SECRET = "test-secret"
         const val ISSUER = "ecotrace"
-        val PHOTO = byteArrayOf(1, 2, 3, 4, 5, 6, 7, 8)
+        val PHOTO = ByteArray(64) { 0x11 }.also {
+            byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()).copyInto(it)
+        }
+    }
+}
+
+private class FakeUploadsRepository : UploadsRepository {
+    private val owners = mutableMapOf<String, String>()
+
+    override suspend fun record(name: String, userId: String) {
+        owners[name] = userId
+    }
+
+    override suspend fun ownerOf(name: String): String? = owners[name]
+
+    override suspend fun delete(name: String) {
+        owners.remove(name)
     }
 }

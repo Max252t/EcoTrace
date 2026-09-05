@@ -117,8 +117,9 @@ variables. Copy `.env.example` to `.env` and adjust it, or export the variables 
 | `PORT` | `8080` | HTTP port |
 | `DATABASE_URL` | `jdbc:postgresql://localhost:5432/ecotrace` | JDBC connection string |
 | `DATABASE_USER` | `ecotrace` | Database user |
-| `DATABASE_PASSWORD` | `ecotrace` | Database password |
-| `JWT_SECRET` | `ecotrace-secret-key-change-in-production` | HS256 signing key — **must** be replaced in production |
+| `DATABASE_PASSWORD` | — | **Required.** Database password |
+| `JWT_SECRET` | — | **Required.** HS256 signing key; the server refuses to start without it |
+| `CORS_ALLOWED_HOSTS` | `localhost:8080` | Comma-separated origins allowed by CORS, `*` opens the API to any host |
 | `UPLOAD_DIR` | `uploads` | Directory for uploaded photos |
 | `MAX_UPLOAD_BYTES` | `10485760` | Maximum size of a single upload |
 
@@ -187,6 +188,11 @@ GET /health
 | `POST` | `/api/auth/register` | Register a new account |
 | `POST` | `/api/auth/login` | Sign in |
 
+Both endpoints are rate limited to 10 requests per minute per client address, which is what stops
+password guessing. The email is normalised before the duplicate check, so `USER@a.com` and
+`user@a.com` are the same account. Passwords are 6..72 characters (72 is the BCrypt limit) and the
+display name is 1..128.
+
 **Register body** (password must be at least 6 characters):
 
 ```json
@@ -222,16 +228,25 @@ invalid credentials.
 
 | Method | URL | Auth | Description |
 |--------|-----|------|-------------|
-| `GET` | `/api/reports` | — | List reports, filters: `?type=DUMP&status=OPEN` |
+| `GET` | `/api/reports` | — | List reports, filters: `?type=DUMP&status=OPEN`, paging: `?limit=100&offset=0` |
 | `GET` | `/api/reports/{id}` | — | Single report |
 | `POST` | `/api/reports` | ✅ | Create a report |
 | `PATCH` | `/api/reports/{id}/status` | ✅ | Change the status |
 | `DELETE` | `/api/reports/{id}` | ✅ | Delete a report |
 | `GET` | `/api/users/me/reports` | ✅ | Reports created by the current user |
 
-A new report is always created with status `OPEN` and the author taken from the token. Changing the
-status and deleting are allowed only for the author of the report or for a user with the `ADMIN`
-role; otherwise the server answers `403 Forbidden`.
+A new report is always created with status `OPEN` and the author taken from the token. Deleting is
+allowed for the author or for an `ADMIN`. Status changes are allowed for the same people, but the
+author may only move a report between `OPEN` and `IN_PROGRESS` — only an `ADMIN` may set `RESOLVED`,
+so nobody can award themselves eco points and the `PROBLEM_SOLVER` achievement. Anything else answers
+`403 Forbidden`.
+
+`imageUrl` is not trusted: it must name a file the same user uploaded through `POST /api/files`,
+otherwise the request is rejected with `400 Bad Request`. The stored value is always rebuilt by the
+server, so a report can never point at somebody else's photo or at an external host.
+
+`title`, `description` and the coordinates are validated; `GET /api/reports` returns at most
+`limit` rows (100 by default, 500 maximum).
 
 **Create body:**
 
@@ -283,9 +298,12 @@ Authorization: Bearer <token>
 | `POST` | `/api/files` | ✅ | Upload a photo as `multipart/form-data`, part name `file` |
 | `GET` | `/api/files/{name}` | — | Download a stored photo |
 
-JPEG, PNG and WebP are accepted, up to `MAX_UPLOAD_BYTES` (10 MB by default). The type is taken from
-the part's content type and falls back to the file extension; anything else is rejected with
-`415 Unsupported Media Type`, and an oversized file with `413 Payload Too Large`.
+JPEG, PNG and WebP are accepted, up to `MAX_UPLOAD_BYTES` (10 MB by default). The type is decided by
+the file signature — the client's content type and file name are ignored, so an executable renamed to
+`photo.jpg` is rejected with `415 Unsupported Media Type`. The upload is streamed to disk and aborted
+as soon as it passes the limit, which answers `413 Payload Too Large` without buffering the body in
+memory. Uploads are recorded per user, and a report may only reference an image its own author
+uploaded.
 
 ```json
 { "name": "0f1c….jpg", "url": "/api/files/0f1c….jpg" }

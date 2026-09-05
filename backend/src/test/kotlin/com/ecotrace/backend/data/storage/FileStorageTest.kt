@@ -20,10 +20,10 @@ class FileStorageTest {
     }
 
     @Test
-    fun save_writesFileAndReturnsPublicUrl() {
-        val bytes = byteArrayOf(1, 2, 3, 4)
+    fun save_writesJpegAndReturnsPublicUrl() {
+        val bytes = jpeg(64)
 
-        val stored = storage().save(bytes, "image/jpeg", "photo.jpg")
+        val stored = storage().save(bytes)
 
         assertTrue(stored is StoredFile.Success)
         assertTrue(stored.name.endsWith(".jpg"))
@@ -32,27 +32,55 @@ class FileStorageTest {
     }
 
     @Test
-    fun save_takesExtensionFromContentType() {
-        val stored = storage().save(byteArrayOf(1), "image/png", "photo")
+    fun save_detectsPngAndWebpBySignature() {
+        val png = storage().save(png(32))
+        val webp = storage().save(webp(32))
 
-        assertTrue(stored is StoredFile.Success)
-        assertTrue(stored.name.endsWith(".png"))
+        assertTrue(png is StoredFile.Success)
+        assertTrue(png.name.endsWith(".png"))
+        assertTrue(webp is StoredFile.Success)
+        assertTrue(webp.name.endsWith(".webp"))
     }
 
     @Test
-    fun save_fallsBackToFileNameExtensionWhenContentTypeIsMissing() {
-        val stored = storage().save(byteArrayOf(1), null, "photo.WEBP")
+    fun save_rejectsFileWithoutImageSignature() {
+        val stored = storage().save("%PDF-1.7 not an image".toByteArray())
 
-        assertTrue(stored is StoredFile.Success)
-        assertTrue(stored.name.endsWith(".webp"))
+        assertEquals(StoredFile.UnsupportedType, stored)
+        assertEquals(0, directory.listFiles()?.size)
+    }
+
+    @Test
+    fun save_rejectsExecutableRenamedToJpg() {
+        val stored = storage().save(byteArrayOf(0x4D, 0x5A, 0x90.toByte(), 0x00, 0x03, 0, 0, 0, 4, 0, 0, 0))
+
+        assertEquals(StoredFile.UnsupportedType, stored)
+    }
+
+    @Test
+    fun save_rejectsTruncatedFile() {
+        assertEquals(StoredFile.UnsupportedType, storage().save(byteArrayOf(0xFF.toByte(), 0xD8.toByte())))
+    }
+
+    @Test
+    fun save_rejectsEmptyFile() {
+        assertEquals(StoredFile.UnsupportedType, storage().save(ByteArray(0)))
+    }
+
+    @Test
+    fun save_stopsWritingWhenLimitIsExceeded() {
+        val stored = storage(maxFileSizeBytes = 64).save(jpeg(512))
+
+        assertEquals(StoredFile.TooLarge, stored)
+        assertEquals(0, directory.listFiles()?.size)
     }
 
     @Test
     fun save_generatesUniqueNameForEveryUpload() {
         val storage = storage()
 
-        val first = storage.save(byteArrayOf(1), "image/jpeg", "photo.jpg")
-        val second = storage.save(byteArrayOf(2), "image/jpeg", "photo.jpg")
+        val first = storage.save(jpeg(16))
+        val second = storage.save(jpeg(16))
 
         assertTrue(first is StoredFile.Success)
         assertTrue(second is StoredFile.Success)
@@ -61,54 +89,9 @@ class FileStorageTest {
     }
 
     @Test
-    fun save_rejectsUnsupportedType() {
-        val stored = storage().save(byteArrayOf(1), "application/pdf", "document.pdf")
-
-        assertEquals(StoredFile.UnsupportedType, stored)
-        assertEquals(0, directory.listFiles()?.size)
-    }
-
-    @Test
-    fun save_rejectsExecutableDisguisedByContentType() {
-        val stored = storage().save(byteArrayOf(1), "text/plain", "payload.sh")
-
-        assertEquals(StoredFile.UnsupportedType, stored)
-    }
-
-    @Test
-    fun save_rejectsEmptyFile() {
-        assertEquals(StoredFile.UnsupportedType, storage().save(ByteArray(0), "image/jpeg", "photo.jpg"))
-    }
-
-    @Test
-    fun save_rejectsFileOverTheSizeLimit() {
-        val stored = storage(maxFileSizeBytes = 8).save(ByteArray(9), "image/jpeg", "photo.jpg")
-
-        assertEquals(StoredFile.TooLarge, stored)
-        assertEquals(0, directory.listFiles()?.size)
-    }
-
-    @Test
-    fun save_ignoresCharsetSuffixOfContentType() {
-        val stored = storage().save(byteArrayOf(1), "image/jpeg; charset=binary", null)
-
-        assertTrue(stored is StoredFile.Success)
-        assertTrue(stored.name.endsWith(".jpg"))
-    }
-
-    @Test
-    fun save_neverBuildsNameFromUserSuppliedPath() {
-        val stored = storage().save(byteArrayOf(1), "image/png", "../../etc/passwd.png")
-
-        assertTrue(stored is StoredFile.Success)
-        assertTrue(stored.name.none { it == '/' || it == '\\' })
-        assertEquals(File(directory, stored.name).canonicalFile.parentFile, directory.canonicalFile)
-    }
-
-    @Test
     fun delete_removesStoredFileByItsUrl() {
         val storage = storage()
-        val stored = storage.save(byteArrayOf(1), "image/jpeg", "photo.jpg")
+        val stored = storage.save(jpeg(16))
         assertTrue(stored is StoredFile.Success)
 
         assertTrue(storage.delete(stored.url))
@@ -118,7 +101,7 @@ class FileStorageTest {
     @Test
     fun delete_ignoresUrlsThatDoNotBelongToTheStorage() {
         val storage = storage()
-        storage.save(byteArrayOf(1), "image/jpeg", "photo.jpg")
+        storage.save(jpeg(16))
 
         assertFalse(storage.delete(null))
         assertFalse(storage.delete("https://cdn.example.com/a.jpg"))
@@ -147,4 +130,25 @@ class FileStorageTest {
 
     private fun storage(maxFileSizeBytes: Long = 1024) =
         FileStorage(directory = directory, maxFileSizeBytes = maxFileSizeBytes)
+
+    private companion object {
+        fun jpeg(size: Int) = header(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()), size)
+
+        fun png(size: Int) = header(
+            byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A),
+            size,
+        )
+
+        fun webp(size: Int): ByteArray {
+            val bytes = header(byteArrayOf(0x52, 0x49, 0x46, 0x46), size)
+            byteArrayOf(0x57, 0x45, 0x42, 0x50).copyInto(bytes, 8)
+            return bytes
+        }
+
+        private fun header(magic: ByteArray, size: Int): ByteArray {
+            val bytes = ByteArray(maxOf(size, 12)) { 0x11 }
+            magic.copyInto(bytes)
+            return bytes
+        }
+    }
 }

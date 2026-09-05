@@ -3,45 +3,52 @@ package com.ecotrace.backend.routes
 import com.ecotrace.backend.data.storage.FileStorage
 import com.ecotrace.backend.data.storage.StoredFile
 import com.ecotrace.backend.domain.model.UploadedFileResponse
+import com.ecotrace.backend.domain.repository.UploadsRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receiveMultipart
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
-import io.ktor.utils.io.readRemaining
-import kotlinx.io.readByteArray
+import io.ktor.utils.io.jvm.javaio.toInputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-fun Route.filesRoutes(fileStorage: FileStorage) {
+fun Route.filesRoutes(fileStorage: FileStorage, uploadsRepository: UploadsRepository) {
     authenticate("auth-jwt") {
         post(FileStorage.ROUTE) {
-            var bytes: ByteArray? = null
-            var contentType: String? = null
-            var originalFileName: String? = null
+            val userId = call.principal<JWTPrincipal>()?.getClaim("userId", String::class)
+                ?: return@post call.respond(HttpStatusCode.Unauthorized)
+
+            var stored: StoredFile? = null
 
             call.receiveMultipart().forEachPart { part ->
-                if (part is PartData.FileItem && bytes == null) {
-                    bytes = part.provider().readRemaining().readByteArray()
-                    contentType = part.contentType?.toString()
-                    originalFileName = part.originalFileName
+                if (part is PartData.FileItem && stored == null) {
+                    stored = withContext(Dispatchers.IO) {
+                        part.provider().toInputStream().use { fileStorage.save(it) }
+                    }
                 }
                 part.dispose()
             }
 
-            val content = bytes
-            if (content == null) {
-                call.respond(HttpStatusCode.BadRequest, mapOf("error" to "File part is missing"))
-                return@post
-            }
-
-            when (val stored = fileStorage.save(content, contentType, originalFileName)) {
-                is StoredFile.Success -> call.respond(
-                    HttpStatusCode.Created,
-                    UploadedFileResponse(name = stored.name, url = stored.url),
+            when (val result = stored) {
+                null -> call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "File part is missing"),
                 )
+
+                is StoredFile.Success -> {
+                    uploadsRepository.record(result.name, userId)
+                    call.respond(
+                        HttpStatusCode.Created,
+                        UploadedFileResponse(name = result.name, url = result.url),
+                    )
+                }
 
                 StoredFile.TooLarge -> call.respond(
                     HttpStatusCode.PayloadTooLarge,

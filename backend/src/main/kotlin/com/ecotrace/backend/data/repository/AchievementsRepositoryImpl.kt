@@ -6,10 +6,8 @@ import com.ecotrace.backend.domain.model.Achievement
 import com.ecotrace.backend.domain.model.AchievementCode
 import com.ecotrace.backend.domain.repository.AchievementsRepository
 import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
+import org.jetbrains.exposed.sql.upsert
 
 class AchievementsRepositoryImpl : AchievementsRepository {
 
@@ -22,21 +20,10 @@ class AchievementsRepositoryImpl : AchievementsRepository {
 
     override suspend fun saveAll(achievements: List<Achievement>) = dbQuery {
         achievements.forEach { achievement ->
-            val updated = UserAchievementsTable.update(
-                {
-                    (UserAchievementsTable.userId eq achievement.userId) and
-                        (UserAchievementsTable.code eq achievement.code.name)
-                },
-            ) {
+            UserAchievementsTable.upsert {
+                it[userId] = achievement.userId
+                it[code] = achievement.code.name
                 it[unlockedAt] = achievement.unlockedAt
-            }
-
-            if (updated == 0) {
-                UserAchievementsTable.insert {
-                    it[userId] = achievement.userId
-                    it[code] = achievement.code.name
-                    it[unlockedAt] = achievement.unlockedAt
-                }
             }
         }
     }

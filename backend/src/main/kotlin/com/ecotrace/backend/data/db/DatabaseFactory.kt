@@ -36,6 +36,7 @@ object DatabaseFactory {
                 UsersTable,
                 ReportsTable,
                 UserAchievementsTable,
+                UploadsTable,
             )
         }
     }

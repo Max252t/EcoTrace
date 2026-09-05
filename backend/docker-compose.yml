@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: ecotrace
       POSTGRES_USER: ecotrace
-      POSTGRES_PASSWORD: ecotrace
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
     ports:
       - "5432:5432"
     volumes:
@@ -30,8 +30,8 @@ services:
       PORT: 8080
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecotrace
       DATABASE_USER: ecotrace
-      DATABASE_PASSWORD: ecotrace
-      JWT_SECRET: change-me-in-production
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       UPLOAD_DIR: /app/uploads
     ports:
       - "8080:8080"
