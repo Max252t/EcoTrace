@@ -43,35 +43,43 @@ class AddReportViewModelTest {
     }
 
     @Test
-    fun createDraftReport_storesReportWithIdOfSignedInUser() = runTest {
+    fun createDraftReport_usesCurrentUserAsAuthorAndReturnsTrue() = runTest {
         every { authRepository.currentSession() } returns SESSION
-        val report = slot<Report>()
-        coEvery { addReportUseCase(capture(report)) } just Runs
+        val reportSlot = slot<Report>()
+        coEvery { addReportUseCase(capture(reportSlot)) } just Runs
+        val viewModel = AddReportViewModel(addReportUseCase, authRepository)
 
-        val created = viewModel().createDraftReport(
-            title = "Dump",
-            description = "Near the park",
+        val created = viewModel.createDraftReport(
+            title = "Дамп",
+            description = "Свалка мусора",
             type = ProblemType.DUMP,
             latitude = 55.0,
             longitude = 37.0,
-            imageUri = null,
+            imageUri = "content://media/1",
         )
 
         assertTrue(created)
-        assertEquals(SESSION.userId, report.captured.authorId)
-        assertEquals("Dump", report.captured.title)
+        val report = reportSlot.captured
+        assertEquals("Дамп", report.title)
+        assertEquals("Свалка мусора", report.description)
+        assertEquals(ProblemType.DUMP, report.type)
+        assertEquals(55.0, report.latitude, 0.0)
+        assertEquals(37.0, report.longitude, 0.0)
+        assertEquals("content://media/1", report.imageUri)
+        assertEquals(SESSION.userId, report.authorId)
     }
 
     @Test
-    fun createDraftReport_isRejectedWhenSessionIsGone() = runTest {
+    fun createDraftReport_returnsFalseAndSkipsCreationWhenSignedOut() = runTest {
         every { authRepository.currentSession() } returns null
+        val viewModel = AddReportViewModel(addReportUseCase, authRepository)
 
-        val created = viewModel().createDraftReport(
-            title = "Dump",
-            description = "Near the park",
-            type = ProblemType.DUMP,
-            latitude = 55.0,
-            longitude = 37.0,
+        val created = viewModel.createDraftReport(
+            title = "title",
+            description = "description",
+            type = ProblemType.ROAD_PIT,
+            latitude = 10.0,
+            longitude = 20.0,
             imageUri = null,
         )
 
@@ -79,14 +87,12 @@ class AddReportViewModelTest {
         coVerify(exactly = 0) { addReportUseCase(any()) }
     }
 
-    private fun viewModel() = AddReportViewModel(addReportUseCase, authRepository)
-
     private companion object {
         val SESSION = AuthSession(
             token = "token",
             userId = "user-1",
             email = "user@example.com",
-            displayName = "Иван",
+            displayName = "User",
             role = "USER",
         )
     }
