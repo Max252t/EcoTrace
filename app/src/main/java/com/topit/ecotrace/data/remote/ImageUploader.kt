@@ -22,14 +22,14 @@ class ImageUploader @Inject constructor(
     fun isLocal(uri: String): Boolean = localImageSource.isLocal(uri)
 
     suspend fun upload(uri: String): ImageUploadResult {
-        val bytes = localImageSource.read(uri)?.takeIf { it.isNotEmpty() }
+        val bytes = localImageSource.readScaled(uri, MAX_DIMENSION, JPEG_QUALITY)
+            ?.takeIf { it.isNotEmpty() }
             ?: return ImageUploadResult.Unavailable
 
-        val contentType = localImageSource.contentType(uri) ?: DEFAULT_CONTENT_TYPE
         val part = MultipartBody.Part.createFormData(
             "file",
-            fileNameFor(contentType),
-            bytes.toRequestBody(contentType.toMediaTypeOrNull()),
+            "photo.jpg",
+            bytes.toRequestBody(CONTENT_TYPE.toMediaTypeOrNull()),
         )
 
         return runCatching { filesApi.upload(part).url }.fold(
@@ -46,17 +46,10 @@ class ImageUploader @Inject constructor(
         )
     }
 
-    private fun fileNameFor(contentType: String): String {
-        val extension = when (contentType.substringBefore(';').trim().lowercase()) {
-            "image/png" -> "png"
-            "image/webp" -> "webp"
-            else -> "jpg"
-        }
-        return "photo.$extension"
-    }
-
     private companion object {
-        const val DEFAULT_CONTENT_TYPE = "image/jpeg"
+        const val CONTENT_TYPE = "image/jpeg"
+        const val MAX_DIMENSION = 1920
+        const val JPEG_QUALITY = 85
         val PERMANENT_ERRORS = setOf(400, 403, 404, 413, 415, 422)
     }
 }

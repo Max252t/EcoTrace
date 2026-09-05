@@ -107,4 +107,19 @@
     <string name="auth_confirm_password_placeholder">Enter password again</string>
     <string name="passwords_dont_match">Passwords do not match</string>
     <string name="back_button">Back</string>
+    <string name="delete_report_title">Delete report?</string>
+    <string name="delete_report_message">The report «%1$s» will be deleted permanently.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="pending_sync">Waiting for synchronisation</string>
+    <string name="report_not_found">Report not found</string>
+    <string name="date_label">Date</string>
+    <string name="photo_selected">Photo selected</string>
+    <string name="title_required">Enter a report title</string>
+    <string name="auth_error_invalid_credentials">Wrong email or password</string>
+    <string name="auth_error_email_taken">This email is already registered</string>
+    <string name="auth_error_invalid_data">Check the entered data</string>
+    <string name="auth_error_too_many_attempts">Too many sign-in attempts. Try again later</string>
+    <string name="auth_error_server">Server error, try again later</string>
+    <string name="auth_error_network">Could not reach the server</string>
 </resources>

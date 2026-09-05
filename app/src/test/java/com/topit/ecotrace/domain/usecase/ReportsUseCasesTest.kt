@@ -191,6 +191,8 @@ private class FakeReportsRepository(
     override suspend fun syncPending() {
         syncPendingCalls += 1
     }
+
+    override suspend fun clearLocal() = Unit
 }
 
 private class FakeAuthRepository(private val session: AuthSession?) : AuthRepository {

@@ -95,7 +95,7 @@ class ReportDetailsViewModelTest {
     }
 
     @Test
-    fun load_allowsStatusChangeForAuthorOfTheReport() = runTest {
+    fun load_offersOpenAndInProgressToTheAuthor() = runTest {
         val report = testReport()
         coEvery { getReportByIdUseCase("report-1") } returns report
         coEvery { getAuthorNameUseCase(report.authorId) } returns "Иван"
@@ -103,7 +103,10 @@ class ReportDetailsViewModelTest {
 
         vm.load("report-1")
 
-        assertTrue(vm.canChangeStatus.value)
+        assertEquals(
+            listOf(ReportStatus.OPEN, ReportStatus.IN_PROGRESS),
+            vm.availableStatuses.value,
+        )
     }
 
     @Test
@@ -115,11 +118,11 @@ class ReportDetailsViewModelTest {
 
         vm.load("report-1")
 
-        assertFalse(vm.canChangeStatus.value)
+        assertTrue(vm.availableStatuses.value.isEmpty())
     }
 
     @Test
-    fun load_allowsStatusChangeForAdmin() = runTest {
+    fun load_offersEveryStatusToAdmin() = runTest {
         val report = testReport().copy(authorId = "someone-else")
         every { authRepository.currentSession() } returns SESSION.copy(role = "ADMIN")
         coEvery { getReportByIdUseCase("report-1") } returns report
@@ -128,7 +131,7 @@ class ReportDetailsViewModelTest {
 
         vm.load("report-1")
 
-        assertTrue(vm.canChangeStatus.value)
+        assertEquals(ReportStatus.entries, vm.availableStatuses.value)
     }
 
     @Test
@@ -141,7 +144,7 @@ class ReportDetailsViewModelTest {
 
         vm.load("report-1")
 
-        assertFalse(vm.canChangeStatus.value)
+        assertTrue(vm.availableStatuses.value.isEmpty())
     }
 
     private fun viewModel() = ReportDetailsViewModel(

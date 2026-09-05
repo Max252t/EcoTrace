@@ -4,7 +4,9 @@ import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +38,7 @@ private const val USER_LOCATION_TAG = "user_location"
 fun YandexMapComposable(
     reports: List<Report>,
     cameraTarget: Point?,
+    onCameraMoved: () -> Unit = {},
     /** Current user GPS position — shown as a green circle, not clustered */
     userLocation: Point?,
     onMapLongTap: (Point) -> Unit,
@@ -100,18 +103,28 @@ fun YandexMapComposable(
         }
     }
 
+    var renderedReports by remember { mutableStateOf<List<Report>?>(null) }
+    var renderedUserLocation by remember { mutableStateOf<Point?>(null) }
+
     AndroidView(
         factory = { mapView },
         modifier = modifier,
         update = { view ->
-            // Move camera if requested
+            // Move camera once per request, then let the user pan freely
             if (cameraTarget != null) {
                 view.mapWindow.map.move(
                     CameraPosition(cameraTarget, 15f, 0f, 0f),
                     Animation(Animation.Type.SMOOTH, 0.7f),
                     null,
                 )
+                onCameraMoved()
             }
+
+            if (renderedReports == reports && renderedUserLocation == userLocation) {
+                return@AndroidView
+            }
+            renderedReports = reports
+            renderedUserLocation = userLocation
 
             // Clear all previous objects
             view.mapWindow.map.mapObjects.clear()

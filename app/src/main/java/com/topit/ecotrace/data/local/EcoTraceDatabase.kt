@@ -7,7 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [ReportEntity::class, AchievementEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class EcoTraceDatabase : RoomDatabase() {
@@ -25,6 +25,13 @@ abstract class EcoTraceDatabase : RoomDatabase() {
                         "`synced` INTEGER NOT NULL, " +
                         "PRIMARY KEY(`userId`, `code`))",
                 )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `reports` ADD COLUMN `uploaded` INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE `reports` SET `uploaded` = 1 WHERE `synced` = 1")
             }
         }
 

@@ -30,15 +30,15 @@ class ReportDetailsViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _canChangeStatus = MutableStateFlow(false)
-    val canChangeStatus: StateFlow<Boolean> = _canChangeStatus.asStateFlow()
+    private val _availableStatuses = MutableStateFlow(emptyList<ReportStatus>())
+    val availableStatuses: StateFlow<List<ReportStatus>> = _availableStatuses.asStateFlow()
 
     fun load(reportId: String) {
         viewModelScope.launch {
             _isLoading.value = true
             val report = getReportByIdUseCase(reportId)
             _report.value = report
-            _canChangeStatus.value = report != null && mayChangeStatus(report)
+            _availableStatuses.value = report?.let { statusesFor(it) }.orEmpty()
             _isLoading.value = false
             _authorName.value = report?.let { getAuthorNameUseCase(it.authorId) }
         }
@@ -51,12 +51,17 @@ class ReportDetailsViewModel @Inject constructor(
         }
     }
 
-    private fun mayChangeStatus(report: Report): Boolean {
-        val session = authRepository.currentSession() ?: return false
-        return session.userId == report.authorId || session.role == ADMIN_ROLE
+    private fun statusesFor(report: Report): List<ReportStatus> {
+        val session = authRepository.currentSession() ?: return emptyList()
+        return when {
+            session.role == ADMIN_ROLE -> ReportStatus.entries
+            session.userId == report.authorId -> AUTHOR_STATUSES
+            else -> emptyList()
+        }
     }
 
     private companion object {
         const val ADMIN_ROLE = "ADMIN"
+        val AUTHOR_STATUSES = listOf(ReportStatus.OPEN, ReportStatus.IN_PROGRESS)
     }
 }

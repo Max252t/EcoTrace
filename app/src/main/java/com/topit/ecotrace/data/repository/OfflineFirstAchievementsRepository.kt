@@ -38,6 +38,10 @@ class OfflineFirstAchievementsRepository @Inject constructor(
         syncWithServer(userId)
     }
 
+    override suspend fun clearLocal() {
+        achievementsDao.clear()
+    }
+
     private suspend fun unlockLocally(userId: String) {
         val myReports = reportsRepository.observeReports().first()
             .filter { it.authorId == userId }

@@ -3,6 +3,7 @@ package com.topit.ecotrace.presentation.viewmodel
 import com.topit.ecotrace.domain.model.ProblemType
 import com.topit.ecotrace.domain.model.Report
 import com.topit.ecotrace.domain.model.ReportStatus
+import com.topit.ecotrace.domain.repository.AuthRepository
 import com.topit.ecotrace.domain.usecase.DeleteReportUseCase
 import com.topit.ecotrace.domain.usecase.GetMyReportsUseCase
 import com.topit.ecotrace.domain.usecase.SyncReportsUseCase
@@ -34,6 +35,7 @@ class MyReportsViewModelTest {
     private val syncReportsUseCase: SyncReportsUseCase = mockk()
     private val updateReportStatusUseCase: UpdateReportStatusUseCase = mockk()
     private val deleteReportUseCase: DeleteReportUseCase = mockk()
+    private val authRepository: AuthRepository = mockk()
 
     @Before
     fun setUp() {
@@ -42,6 +44,7 @@ class MyReportsViewModelTest {
         coEvery { updateReportStatusUseCase(any(), any()) } just Runs
         coEvery { deleteReportUseCase(any()) } just Runs
         every { getMyReportsUseCase() } returns flowOf(emptyList())
+        every { authRepository.currentSession() } returns null
     }
 
     @After
@@ -88,6 +91,7 @@ class MyReportsViewModelTest {
 
     private fun viewModel() = MyReportsViewModel(
         getMyReportsUseCase,
+        authRepository,
         syncReportsUseCase,
         updateReportStatusUseCase,
         deleteReportUseCase,

@@ -77,6 +77,7 @@ fun MyReportsScreen(
                         onClick = { onReportClick(report.id) },
                         onDelete = { viewModel.deleteReport(report.id) },
                         onMarkResolved = { viewModel.markResolved(report.id) },
+                        canResolve = viewModel.canResolve,
                     )
                 }
             }
@@ -90,22 +91,24 @@ private fun ReportCard(
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onMarkResolved: () -> Unit,
+    canResolve: Boolean,
 ) {
+    val s = LocalAppStrings.current
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Удалить отчёт?", style = MaterialTheme.typography.titleMedium) },
-            text = { Text("Отчёт «${report.title}» будет удалён без возможности восстановления.", style = MaterialTheme.typography.bodyMedium) },
+            title = { Text(s.deleteReportTitle, style = MaterialTheme.typography.titleMedium) },
+            text = { Text(s.deleteReportMessage(report.title), style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 TextButton(
                     onClick = { showDeleteDialog = false; onDelete() },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) { Text("Удалить") }
+                ) { Text(s.delete) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { Text("Отмена") }
+                TextButton(onClick = { showDeleteDialog = false }) { Text(s.cancel) }
             },
         )
     }
@@ -131,7 +134,7 @@ private fun ReportCard(
                         if (!report.synced) {
                             Icon(
                                 Icons.Default.Sync,
-                                contentDescription = "Ожидает синхронизации",
+                                contentDescription = s.pendingSync,
                                 tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(14.dp),
                             )
@@ -149,13 +152,13 @@ private fun ReportCard(
                 CoordChip(report.latitude, report.longitude)
                 Spacer(Modifier.weight(1f))
                 // Mark resolved (only when not yet resolved)
-                if (report.status != ReportStatus.RESOLVED) {
+                if (canResolve && report.status != ReportStatus.RESOLVED) {
                     IconButton(onClick = onMarkResolved, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Отметить решённой", tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.CheckCircle, contentDescription = s.markResolved, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
                     }
                 }
                 IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Delete, contentDescription = s.delete, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
                 }
             }
         }

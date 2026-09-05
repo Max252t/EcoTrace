@@ -209,7 +209,7 @@ class OfflineFirstReportsRepositoryTest {
         id: String,
         synced: Boolean = true,
         status: ReportStatus = ReportStatus.OPEN,
-    ) = report(id, status).toEntity(synced = synced)
+    ) = report(id, status).toEntity(synced = synced, uploaded = synced)
 }
 
 private class FakeReportsDao(initial: List<ReportEntity> = emptyList()) : ReportsDao {
@@ -246,7 +246,9 @@ private class FakeReportsDao(initial: List<ReportEntity> = emptyList()) : Report
         stored.value.filter { !it.synced && !it.pendingDeletion }
 
     override suspend fun markSynced(ids: List<String>) {
-        stored.value = stored.value.map { if (it.id in ids) it.copy(synced = true) else it }
+        stored.value = stored.value.map {
+            if (it.id in ids) it.copy(synced = true, uploaded = true) else it
+        }
     }
 
     override suspend fun markPendingDeletion(id: String) {
@@ -260,6 +262,18 @@ private class FakeReportsDao(initial: List<ReportEntity> = emptyList()) : Report
 
     override suspend fun deleteById(id: String) {
         stored.value = stored.value.filterNot { it.id == id }
+    }
+
+    override suspend fun deleteMissingOnServer(keptIds: List<String>) {
+        stored.value = stored.value.filterNot { it.uploaded && it.synced && it.id !in keptIds }
+    }
+
+    override suspend fun deleteAllFromServer() {
+        stored.value = stored.value.filterNot { it.uploaded && it.synced }
+    }
+
+    override suspend fun clear() {
+        stored.value = emptyList()
     }
 }
 
@@ -281,7 +295,7 @@ private class FakeReportsRemoteDataSource(
 
     private val knownIds: MutableSet<String> = serverReports.map { it.id }.toMutableSet()
 
-    override suspend fun fetchReports(): List<Report> = if (offline) emptyList() else serverReports
+    override suspend fun fetchReports(): List<Report>? = if (offline) null else serverReports
 
     override suspend fun createReport(report: Report): Report? {
         if (offline) return null
