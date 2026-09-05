@@ -298,7 +298,7 @@ private class FakeReportsRepository(private val reports: List<Report>) : Reports
     override fun observeReports(): Flow<List<Report>> = MutableStateFlow(reports)
     override suspend fun getReportById(id: String): Report? = reports.firstOrNull { it.id == id }
     override suspend fun createReport(report: Report) = Unit
-    override suspend fun markAsResolved(id: String) = Unit
+    override suspend fun updateStatus(id: String, status: ReportStatus) = Unit
     override suspend fun deleteReport(id: String) = Unit
     override suspend fun syncPending() = Unit
 }

@@ -18,7 +18,9 @@ The repository contains two independent Gradle projects:
 - Report creation with a photo from the camera or gallery, problem type and manual location picking
 - Photos are uploaded to the server on synchronisation, so they are visible on every device
 - Filtering by problem type and status
-- Personal list of reports with status change and deletion
+- Report status workflow: the author of a report and administrators move it between open, in
+  progress and resolved; everyone else sees the status read-only
+- Personal list of reports with a shortcut for resolving and deletion
 - Email and password authentication with a JWT session stored on the device
 - Offline-first storage: reports are kept in Room and synchronised with the server when it is
   reachable — creation, status changes and deletion all survive being offline
