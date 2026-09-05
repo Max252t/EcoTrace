@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.topit.ecotrace.domain.repository.AuthError
+import com.topit.ecotrace.ui.AppStrings
 import com.topit.ecotrace.ui.LocalAppStrings
 
 @Composable
@@ -39,7 +41,7 @@ fun LoginScreen(
     onBack: (() -> Unit)? = null,
     onOpenRegister: () -> Unit,
     isLoading: Boolean = false,
-    errorMessage: String? = null,
+    error: AuthError? = null,
     onLogin: (email: String, password: String) -> Unit = { _, _ -> },
 ) {
     val s = LocalAppStrings.current
@@ -89,7 +91,8 @@ fun LoginScreen(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        if (!errorMessage.isNullOrBlank()) {
+                        val errorMessage = error?.let { authErrorMessage(it, s) }
+                        if (errorMessage != null) {
                             Text(
                                 text = errorMessage,
                                 color = MaterialTheme.colorScheme.error,
@@ -129,7 +132,7 @@ fun RegisterScreen(
     onBack: (() -> Unit)? = null,
     onOpenLogin: () -> Unit,
     isLoading: Boolean = false,
-    errorMessage: String? = null,
+    error: AuthError? = null,
     onRegister: (name: String, email: String, password: String) -> Unit = { _, _, _ -> },
 ) {
     val s = LocalAppStrings.current
@@ -212,7 +215,8 @@ fun RegisterScreen(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
-                        if (!errorMessage.isNullOrBlank()) {
+                        val errorMessage = error?.let { authErrorMessage(it, s) }
+                        if (errorMessage != null) {
                             Text(
                                 text = errorMessage,
                                 color = MaterialTheme.colorScheme.error,
@@ -248,4 +252,13 @@ fun RegisterScreen(
 
 private fun String.isValidEmail(): Boolean {
     return Patterns.EMAIL_ADDRESS.matcher(this).matches()
+}
+
+internal fun authErrorMessage(error: AuthError, s: AppStrings): String = when (error) {
+    AuthError.INVALID_CREDENTIALS -> s.authErrorInvalidCredentials
+    AuthError.EMAIL_TAKEN -> s.authErrorEmailTaken
+    AuthError.INVALID_DATA -> s.authErrorInvalidData
+    AuthError.TOO_MANY_ATTEMPTS -> s.authErrorTooManyAttempts
+    AuthError.SERVER -> s.authErrorServer
+    AuthError.NETWORK -> s.authErrorNetwork
 }

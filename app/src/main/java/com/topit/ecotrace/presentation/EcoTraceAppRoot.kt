@@ -17,6 +17,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -82,7 +83,7 @@ fun EcoTraceAppRoot() {
     val s = LocalAppStrings.current
 
     val showBottomBar = currentRoute !in hiddenNavRoutes
-    val startDestination = if (authState.isAuthenticated) Screen.Map.route else Screen.Login.route
+    val startDestination = remember { if (authState.isAuthenticated) Screen.Map.route else Screen.Login.route }
 
     val bottomItems = listOf(
         BottomItem(Screen.Map, Icons.Filled.Map, Icons.Outlined.Map) { s.navMap },
@@ -164,7 +165,7 @@ fun EcoTraceAppRoot() {
                     contentPadding = paddingValues,
                     onOpenRegister = { navController.navigate(Screen.Register.route) },
                     isLoading = authState.isLoading,
-                    errorMessage = authState.error,
+                    error = authState.error,
                     onLogin = { email, password -> authViewModel.login(email, password) },
                 )
             }
@@ -173,7 +174,7 @@ fun EcoTraceAppRoot() {
                     contentPadding = paddingValues,
                     onOpenLogin = { navController.navigate(Screen.Login.route) },
                     isLoading = authState.isLoading,
-                    errorMessage = authState.error,
+                    error = authState.error,
                     onRegister = { name, email, password ->
                         authViewModel.register(name, email, password)
                     },

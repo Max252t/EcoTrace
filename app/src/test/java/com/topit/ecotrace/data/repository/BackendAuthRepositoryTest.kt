@@ -5,6 +5,8 @@ import com.topit.ecotrace.data.remote.api.AuthApi
 import com.topit.ecotrace.data.remote.api.AuthResponseDto
 import com.topit.ecotrace.data.remote.api.LoginRequestDto
 import com.topit.ecotrace.data.remote.api.RegisterRequestDto
+import com.topit.ecotrace.domain.repository.AuthError
+import com.topit.ecotrace.domain.repository.AuthFailure
 import com.topit.ecotrace.domain.repository.AuthSession
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -42,24 +44,21 @@ class BackendAuthRepositoryTest {
     }
 
     @Test
-    fun login_mapsUnauthorizedResponseToRussianMessage() = runBlocking {
+    fun login_mapsUnauthorizedResponseToInvalidCredentials() = runBlocking {
         coEvery { authApi.login(any()) } throws httpException(401)
 
         val result = repository().login("user@example.com", "wrong")
 
-        assertEquals("Неверный email или пароль", result.exceptionOrNull()?.message)
+        assertEquals(AuthError.INVALID_CREDENTIALS, result.authError())
     }
 
     @Test
-    fun login_mapsNetworkErrorToRussianMessage() = runBlocking {
+    fun login_mapsNetworkErrorToNetworkFailure() = runBlocking {
         coEvery { authApi.login(any()) } throws IOException("offline")
 
         val result = repository().login("user@example.com", "secret")
 
-        assertEquals(
-            "Не удалось подключиться к серверу. Проверьте IP/порт backend",
-            result.exceptionOrNull()?.message,
-        )
+        assertEquals(AuthError.NETWORK, result.authError())
     }
 
     @Test
@@ -76,21 +75,21 @@ class BackendAuthRepositoryTest {
     }
 
     @Test
-    fun register_mapsConflictResponseToRussianMessage() = runBlocking {
+    fun register_mapsConflictResponseToEmailTaken() = runBlocking {
         coEvery { authApi.register(any()) } throws httpException(409)
 
         val result = repository().register("User", "user@example.com", "secret")
 
-        assertEquals("Этот email уже зарегистрирован", result.exceptionOrNull()?.message)
+        assertEquals(AuthError.EMAIL_TAKEN, result.authError())
     }
 
     @Test
-    fun register_mapsBadRequestResponseToRussianMessage() = runBlocking {
+    fun register_mapsBadRequestResponseToInvalidData() = runBlocking {
         coEvery { authApi.register(any()) } throws httpException(400)
 
         val result = repository().register("User", "user@example.com", "secret")
 
-        assertEquals("Проверьте корректность введенных данных", result.exceptionOrNull()?.message)
+        assertEquals(AuthError.INVALID_DATA, result.authError())
     }
 
     @Test
@@ -99,7 +98,7 @@ class BackendAuthRepositoryTest {
 
         val result = repository().register("User", "user@example.com", "secret")
 
-        assertEquals("Ошибка сервера: 500", result.exceptionOrNull()?.message)
+        assertEquals(AuthError.SERVER, result.authError())
     }
 
     @Test
@@ -156,4 +155,7 @@ class BackendAuthRepositoryTest {
             role = "USER",
         )
     }
+
+    private fun Result<AuthSession>.authError(): AuthError? =
+        (exceptionOrNull() as? AuthFailure)?.error
 }

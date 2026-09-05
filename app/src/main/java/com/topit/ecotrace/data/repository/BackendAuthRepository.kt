@@ -5,6 +5,8 @@ import com.topit.ecotrace.data.mapper.toDomain
 import com.topit.ecotrace.data.remote.api.AuthApi
 import com.topit.ecotrace.data.remote.api.LoginRequestDto
 import com.topit.ecotrace.data.remote.api.RegisterRequestDto
+import com.topit.ecotrace.domain.repository.AuthError
+import com.topit.ecotrace.domain.repository.AuthFailure
 import com.topit.ecotrace.domain.repository.AuthRepository
 import com.topit.ecotrace.domain.repository.AuthSession
 import javax.inject.Inject
@@ -20,7 +22,7 @@ class BackendAuthRepository @Inject constructor(
             val session = authApi.login(LoginRequestDto(email.trim(), password)).toDomain()
             sessionStorage.save(session)
             session
-        }.mapErrorMessage()
+        }.mapError()
     }
 
     override suspend fun register(name: String, email: String, password: String): Result<AuthSession> {
@@ -34,23 +36,25 @@ class BackendAuthRepository @Inject constructor(
             ).toDomain()
             sessionStorage.save(session)
             session
-        }.mapErrorMessage()
+        }.mapError()
     }
 
-    private fun Result<AuthSession>.mapErrorMessage(): Result<AuthSession> {
+    private fun Result<AuthSession>.mapError(): Result<AuthSession> {
         return fold(
             onSuccess = { Result.success(it) },
             onFailure = { error ->
                 val mapped = when (error) {
                     is HttpException -> when (error.code()) {
-                        401 -> "Неверный email или пароль"
-                        409 -> "Этот email уже зарегистрирован"
-                        400 -> "Проверьте корректность введенных данных"
-                        else -> "Ошибка сервера: ${error.code()}"
+                        HTTP_UNAUTHORIZED -> AuthError.INVALID_CREDENTIALS
+                        HTTP_CONFLICT -> AuthError.EMAIL_TAKEN
+                        HTTP_BAD_REQUEST -> AuthError.INVALID_DATA
+                        HTTP_TOO_MANY_REQUESTS -> AuthError.TOO_MANY_ATTEMPTS
+                        else -> AuthError.SERVER
                     }
-                    else -> "Не удалось подключиться к серверу. Проверьте IP/порт backend"
+
+                    else -> AuthError.NETWORK
                 }
-                Result.failure(IllegalStateException(mapped))
+                Result.failure(AuthFailure(mapped))
             },
         )
     }
@@ -60,4 +64,11 @@ class BackendAuthRepository @Inject constructor(
     override fun observeSession(): Flow<AuthSession?> = sessionStorage.session
 
     override fun logout() = sessionStorage.clear()
+
+    private companion object {
+        const val HTTP_BAD_REQUEST = 400
+        const val HTTP_UNAUTHORIZED = 401
+        const val HTTP_CONFLICT = 409
+        const val HTTP_TOO_MANY_REQUESTS = 429
+    }
 }

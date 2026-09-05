@@ -1,9 +1,13 @@
 package com.topit.ecotrace.presentation.viewmodel
 
+import com.topit.ecotrace.domain.repository.AuthError
+import com.topit.ecotrace.domain.repository.AuthFailure
 import com.topit.ecotrace.domain.repository.AuthRepository
 import com.topit.ecotrace.domain.repository.AuthSession
+import com.topit.ecotrace.domain.usecase.LogoutUseCase
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -27,6 +31,7 @@ import org.junit.Test
 class AuthViewModelTest {
 
     private val authRepository: AuthRepository = mockk()
+    private val logoutUseCase: LogoutUseCase = mockk(relaxed = true)
     private val sessionFlow = MutableStateFlow<AuthSession?>(null)
 
     @Before
@@ -46,7 +51,7 @@ class AuthViewModelTest {
         every { authRepository.currentSession() } returns SESSION
         sessionFlow.value = SESSION
 
-        val viewModel = AuthViewModel(authRepository)
+        val viewModel = AuthViewModel(authRepository, logoutUseCase)
 
         assertTrue(viewModel.uiState.value.isAuthenticated)
         assertEquals(SESSION, viewModel.uiState.value.session)
@@ -54,7 +59,7 @@ class AuthViewModelTest {
 
     @Test
     fun uiState_updatesWhenObservedSessionChanges() = runTest {
-        val viewModel = AuthViewModel(authRepository)
+        val viewModel = AuthViewModel(authRepository, logoutUseCase)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
             viewModel.uiState.collect {}
         }
@@ -70,7 +75,7 @@ class AuthViewModelTest {
     @Test
     fun login_updatesStateToAuthenticatedOnSuccess() = runTest {
         coEvery { authRepository.login("user@example.com", "secret") } returns Result.success(SESSION)
-        val viewModel = AuthViewModel(authRepository)
+        val viewModel = AuthViewModel(authRepository, logoutUseCase)
 
         viewModel.login("user@example.com", "secret")
 
@@ -81,32 +86,32 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun login_setsErrorMessageOnFailure() = runTest {
-        coEvery { authRepository.login(any(), any()) } returns Result.failure(IllegalStateException("Неверный email или пароль"))
-        val viewModel = AuthViewModel(authRepository)
+    fun login_setsTypedErrorOnFailure() = runTest {
+        coEvery { authRepository.login(any(), any()) } returns Result.failure(AuthFailure(AuthError.INVALID_CREDENTIALS))
+        val viewModel = AuthViewModel(authRepository, logoutUseCase)
 
         viewModel.login("user@example.com", "wrong")
 
         val state = viewModel.uiState.value
         assertTrue(!state.isLoading)
         assertTrue(!state.isAuthenticated)
-        assertEquals("Неверный email или пароль", state.error)
+        assertEquals(AuthError.INVALID_CREDENTIALS, state.error)
     }
 
     @Test
-    fun login_fallsBackToDefaultMessageWhenErrorHasNone() = runTest {
+    fun login_fallsBackToServerErrorForUnknownFailure() = runTest {
         coEvery { authRepository.login(any(), any()) } returns Result.failure(IllegalStateException())
-        val viewModel = AuthViewModel(authRepository)
+        val viewModel = AuthViewModel(authRepository, logoutUseCase)
 
         viewModel.login("user@example.com", "wrong")
 
-        assertEquals("Login failed", viewModel.uiState.value.error)
+        assertEquals(AuthError.SERVER, viewModel.uiState.value.error)
     }
 
     @Test
     fun register_updatesStateToAuthenticatedOnSuccess() = runTest {
         coEvery { authRepository.register("User", "user@example.com", "secret") } returns Result.success(SESSION)
-        val viewModel = AuthViewModel(authRepository)
+        val viewModel = AuthViewModel(authRepository, logoutUseCase)
 
         viewModel.register("User", "user@example.com", "secret")
 
@@ -117,24 +122,23 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun register_fallsBackToDefaultMessageWhenErrorHasNone() = runTest {
+    fun register_fallsBackToServerErrorForUnknownFailure() = runTest {
         coEvery { authRepository.register(any(), any(), any()) } returns Result.failure(IllegalStateException())
-        val viewModel = AuthViewModel(authRepository)
+        val viewModel = AuthViewModel(authRepository, logoutUseCase)
 
         viewModel.register("User", "user@example.com", "secret")
 
-        assertEquals("Registration failed", viewModel.uiState.value.error)
+        assertEquals(AuthError.SERVER, viewModel.uiState.value.error)
     }
 
     @Test
-    fun logout_resetsStateAndDelegatesToRepository() = runTest {
+    fun logout_resetsStateAndClearsLocalData() = runTest {
         every { authRepository.currentSession() } returns SESSION
-        every { authRepository.logout() } just Runs
-        val viewModel = AuthViewModel(authRepository)
+        val viewModel = AuthViewModel(authRepository, logoutUseCase)
 
         viewModel.logout()
 
-        verify(exactly = 1) { authRepository.logout() }
+        coVerify(exactly = 1) { logoutUseCase() }
         assertEquals(AuthUiState(), viewModel.uiState.value)
         assertNull(viewModel.uiState.value.session)
     }
