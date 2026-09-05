@@ -72,7 +72,7 @@ fun ReportDetailsScreen(contentPadding: PaddingValues, onBack: () -> Unit, repor
     val report by viewModel.report.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val authorName by viewModel.authorName.collectAsStateWithLifecycle()
-    val canChangeStatus by viewModel.canChangeStatus.collectAsStateWithLifecycle()
+    val availableStatuses by viewModel.availableStatuses.collectAsStateWithLifecycle()
 
     LaunchedEffect(reportId) { viewModel.load(reportId) }
 
@@ -82,7 +82,7 @@ fun ReportDetailsScreen(contentPadding: PaddingValues, onBack: () -> Unit, repor
         report = report,
         isLoading = isLoading,
         authorName = authorName,
-        canChangeStatus = canChangeStatus,
+        availableStatuses = availableStatuses,
         onStatusChange = { status -> viewModel.updateStatus(reportId, status) },
     )
 }
@@ -95,7 +95,7 @@ internal fun ReportDetailsContent(
     report: Report?,
     isLoading: Boolean,
     authorName: String?,
-    canChangeStatus: Boolean,
+    availableStatuses: List<ReportStatus>,
     onStatusChange: (ReportStatus) -> Unit,
 ) {
     val s = LocalAppStrings.current
@@ -124,7 +124,7 @@ internal fun ReportDetailsContent(
 
             if (currentReport == null) {
                 Box(modifier = Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-                    Text("Отчёт не найден", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(s.reportNotFound, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 return@Column
             }
@@ -193,7 +193,7 @@ internal fun ReportDetailsContent(
                     InfoRow(Icons.Default.Person, s.authorLabel, authorName ?: s.authorUnknown)
                     InfoRow(
                         Icons.Default.CalendarToday,
-                        "Дата",
+                        s.dateLabel,
                         currentReport.createdAt.atZone(ZoneId.systemDefault()).format(dateFormatter),
                     )
                 }
@@ -208,13 +208,13 @@ internal fun ReportDetailsContent(
                     Text(s.routeButton, style = MaterialTheme.typography.labelLarge, fontSize = 15.sp)
                 }
 
-                if (canChangeStatus) {
+                if (availableStatuses.isNotEmpty()) {
                     EcoSection(title = s.statusInfoLabel) {
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            ReportStatus.entries.forEach { status ->
+                            availableStatuses.forEach { status ->
                                 val (chipBg, chipFg) = statusColors(status)
                                 FilterChip(
                                     selected = status == currentReport.status,

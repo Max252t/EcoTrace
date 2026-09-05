@@ -18,4 +18,5 @@ data class ReportEntity(
     val createdAtEpochSeconds: Long,
     val synced: Boolean,
     @ColumnInfo(defaultValue = "0") val pendingDeletion: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val uploaded: Boolean = false,
 )

@@ -126,6 +126,21 @@ data class AppStrings(
     val authConfirmPasswordLabel: String,
     val authConfirmPasswordPlaceholder: String,
     val passwordsDontMatch: String,
+    val deleteReportTitle: String,
+    val deleteReportMessage: (String) -> String,
+    val delete: String,
+    val cancel: String,
+    val pendingSync: String,
+    val reportNotFound: String,
+    val dateLabel: String,
+    val photoSelected: String,
+    val titleRequired: String,
+    val authErrorInvalidCredentials: String,
+    val authErrorEmailTaken: String,
+    val authErrorInvalidData: String,
+    val authErrorTooManyAttempts: String,
+    val authErrorServer: String,
+    val authErrorNetwork: String,
     val backButton: String,
 )
 
@@ -259,6 +274,29 @@ fun appStringsFor(context: Context, language: AppLanguage): AppStrings = AppStri
     authConfirmPasswordLabel = context.localizedString(language, R.string.auth_confirm_password_label),
     authConfirmPasswordPlaceholder = context.localizedString(language, R.string.auth_confirm_password_placeholder),
     passwordsDontMatch = context.localizedString(language, R.string.passwords_dont_match),
+    deleteReportTitle = context.localizedString(language, R.string.delete_report_title),
+    deleteReportMessage = { title ->
+        context.localizedString(language, R.string.delete_report_message, title)
+    },
+    delete = context.localizedString(language, R.string.delete),
+    cancel = context.localizedString(language, R.string.cancel),
+    pendingSync = context.localizedString(language, R.string.pending_sync),
+    reportNotFound = context.localizedString(language, R.string.report_not_found),
+    dateLabel = context.localizedString(language, R.string.date_label),
+    photoSelected = context.localizedString(language, R.string.photo_selected),
+    titleRequired = context.localizedString(language, R.string.title_required),
+    authErrorInvalidCredentials = context.localizedString(
+        language,
+        R.string.auth_error_invalid_credentials,
+    ),
+    authErrorEmailTaken = context.localizedString(language, R.string.auth_error_email_taken),
+    authErrorInvalidData = context.localizedString(language, R.string.auth_error_invalid_data),
+    authErrorTooManyAttempts = context.localizedString(
+        language,
+        R.string.auth_error_too_many_attempts,
+    ),
+    authErrorServer = context.localizedString(language, R.string.auth_error_server),
+    authErrorNetwork = context.localizedString(language, R.string.auth_error_network),
     backButton = context.localizedString(language, R.string.back_button),
 )
 

@@ -58,7 +58,7 @@ class AddReportViewModelTest {
             imageUri = "content://media/1",
         )
 
-        assertTrue(created)
+        assertEquals(AddReportState.SAVED, viewModel.state.value)
         val report = reportSlot.captured
         assertEquals("Дамп", report.title)
         assertEquals("Свалка мусора", report.description)
@@ -83,7 +83,7 @@ class AddReportViewModelTest {
             imageUri = null,
         )
 
-        assertFalse(created)
+        assertEquals(AddReportState.SESSION_EXPIRED, viewModel.state.value)
         coVerify(exactly = 0) { addReportUseCase(any()) }
     }
 

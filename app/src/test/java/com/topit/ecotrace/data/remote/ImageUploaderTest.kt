@@ -24,7 +24,7 @@ class ImageUploaderTest {
 
     @Test
     fun upload_returnsUrlReturnedByServer() = runBlocking {
-        givenLocalImage(byteArrayOf(1, 2, 3), "image/png")
+        givenLocalImage(byteArrayOf(1, 2, 3))
         coEvery { filesApi.upload(any()) } returns UploadedFileDto("a.png", "/api/files/a.png")
 
         val result = uploader().upload(LOCAL_URI)
@@ -33,21 +33,21 @@ class ImageUploaderTest {
     }
 
     @Test
-    fun upload_sendsFilePartWithContentTypeOfTheImage() = runBlocking {
-        givenLocalImage(byteArrayOf(1, 2, 3), "image/png")
+    fun upload_sendsDownscaledJpegPart() = runBlocking {
+        givenLocalImage(byteArrayOf(1, 2, 3))
         val part = slot<MultipartBody.Part>()
         coEvery { filesApi.upload(capture(part)) } returns UploadedFileDto("a.png", "/api/files/a.png")
 
         uploader().upload(LOCAL_URI)
 
-        assertEquals("image/png", part.captured.body.contentType().toString())
+        assertEquals("image/jpeg", part.captured.body.contentType().toString())
         assertEquals(3L, part.captured.body.contentLength())
-        assertTrue(part.captured.headers?.get("Content-Disposition")?.contains("photo.png") == true)
+        assertTrue(part.captured.headers?.get("Content-Disposition")?.contains("photo.jpg") == true)
     }
 
     @Test
     fun upload_reportsUnavailableWhenLocalFileCannotBeRead() = runBlocking {
-        every { localImageSource.read(LOCAL_URI) } returns null
+        every { localImageSource.readScaled(LOCAL_URI, any(), any()) } returns null
 
         assertEquals(ImageUploadResult.Unavailable, uploader().upload(LOCAL_URI))
         coVerify(exactly = 0) { filesApi.upload(any()) }
@@ -55,14 +55,14 @@ class ImageUploaderTest {
 
     @Test
     fun upload_reportsUnavailableForEmptyFile() = runBlocking {
-        every { localImageSource.read(LOCAL_URI) } returns ByteArray(0)
+        every { localImageSource.readScaled(LOCAL_URI, any(), any()) } returns ByteArray(0)
 
         assertEquals(ImageUploadResult.Unavailable, uploader().upload(LOCAL_URI))
     }
 
     @Test
     fun upload_reportsFailureWhenServerIsUnreachable() = runBlocking {
-        givenLocalImage(byteArrayOf(1), "image/jpeg")
+        givenLocalImage(byteArrayOf(1))
         coEvery { filesApi.upload(any()) } throws IOException("offline")
 
         assertEquals(ImageUploadResult.Failed, uploader().upload(LOCAL_URI))
@@ -70,7 +70,7 @@ class ImageUploaderTest {
 
     @Test
     fun upload_reportsUnavailableWhenServerRejectsTheFile() = runBlocking {
-        givenLocalImage(byteArrayOf(1), "application/pdf")
+        givenLocalImage(byteArrayOf(1))
         coEvery { filesApi.upload(any()) } throws httpException(415)
 
         assertEquals(ImageUploadResult.Unavailable, uploader().upload(LOCAL_URI))
@@ -78,27 +78,14 @@ class ImageUploaderTest {
 
     @Test
     fun upload_reportsFailureForServerError() = runBlocking {
-        givenLocalImage(byteArrayOf(1), "image/jpeg")
+        givenLocalImage(byteArrayOf(1))
         coEvery { filesApi.upload(any()) } throws httpException(500)
 
         assertEquals(ImageUploadResult.Failed, uploader().upload(LOCAL_URI))
     }
 
-    @Test
-    fun upload_fallsBackToJpegWhenContentTypeIsUnknown() = runBlocking {
-        every { localImageSource.read(LOCAL_URI) } returns byteArrayOf(1)
-        every { localImageSource.contentType(LOCAL_URI) } returns null
-        val part = slot<MultipartBody.Part>()
-        coEvery { filesApi.upload(capture(part)) } returns UploadedFileDto("a.jpg", "/api/files/a.jpg")
-
-        uploader().upload(LOCAL_URI)
-
-        assertEquals("image/jpeg", part.captured.body.contentType().toString())
-    }
-
-    private fun givenLocalImage(bytes: ByteArray, contentType: String) {
-        every { localImageSource.read(LOCAL_URI) } returns bytes
-        every { localImageSource.contentType(LOCAL_URI) } returns contentType
+    private fun givenLocalImage(bytes: ByteArray) {
+        every { localImageSource.readScaled(LOCAL_URI, any(), any()) } returns bytes
     }
 
     private fun httpException(code: Int) = HttpException(

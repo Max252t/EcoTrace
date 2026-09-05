@@ -30,7 +30,7 @@ interface ReportsDao {
     @Query("SELECT * FROM reports WHERE synced = 0 AND pendingDeletion = 0")
     suspend fun getUnsyncedReports(): List<ReportEntity>
 
-    @Query("UPDATE reports SET synced = 1 WHERE id IN (:ids)")
+    @Query("UPDATE reports SET synced = 1, uploaded = 1 WHERE id IN (:ids)")
     suspend fun markSynced(ids: List<String>)
 
     @Query("UPDATE reports SET pendingDeletion = 1, synced = 0 WHERE id = :id")
@@ -41,4 +41,13 @@ interface ReportsDao {
 
     @Query("DELETE FROM reports WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM reports WHERE uploaded = 1 AND synced = 1 AND id NOT IN (:keptIds)")
+    suspend fun deleteMissingOnServer(keptIds: List<String>)
+
+    @Query("DELETE FROM reports WHERE uploaded = 1 AND synced = 1")
+    suspend fun deleteAllFromServer()
+
+    @Query("DELETE FROM reports")
+    suspend fun clear()
 }

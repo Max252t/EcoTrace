@@ -11,8 +11,8 @@ fun ReportEntity.toDomain(): Report {
         id = id,
         title = title,
         description = description,
-        type = ProblemType.valueOf(type),
-        status = ReportStatus.valueOf(status),
+        type = runCatching { ProblemType.valueOf(type) }.getOrDefault(ProblemType.DUMP),
+        status = runCatching { ReportStatus.valueOf(status) }.getOrDefault(ReportStatus.OPEN),
         latitude = latitude,
         longitude = longitude,
         imageUri = imageUri,
@@ -22,7 +22,7 @@ fun ReportEntity.toDomain(): Report {
     )
 }
 
-fun Report.toEntity(synced: Boolean): ReportEntity {
+fun Report.toEntity(synced: Boolean, uploaded: Boolean = false): ReportEntity {
     return ReportEntity(
         id = id,
         title = title,
@@ -35,5 +35,6 @@ fun Report.toEntity(synced: Boolean): ReportEntity {
         authorId = authorId,
         createdAtEpochSeconds = createdAt.epochSecond,
         synced = synced,
+        uploaded = uploaded,
     )
 }

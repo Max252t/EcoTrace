@@ -14,8 +14,8 @@ class BackendReportsRemoteDataSource @Inject constructor(
     private val sessionStorage: SessionStorage,
     private val imageUploader: ImageUploader,
 ) : ReportsRemoteDataSource {
-    override suspend fun fetchReports(): List<Report> {
-        return runCatching { reportsApi.getReports().map { it.toDomain() } }.getOrDefault(emptyList())
+    override suspend fun fetchReports(): List<Report>? {
+        return runCatching { reportsApi.getReports().map { it.toDomain() } }.getOrNull()
     }
 
     override suspend fun createReport(report: Report): Report? {

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.topit.ecotrace.domain.model.Report
 import com.topit.ecotrace.domain.model.ReportStatus
+import com.topit.ecotrace.domain.repository.AuthRepository
 import com.topit.ecotrace.domain.usecase.DeleteReportUseCase
 import com.topit.ecotrace.domain.usecase.GetMyReportsUseCase
 import com.topit.ecotrace.domain.usecase.SyncReportsUseCase
@@ -16,10 +17,13 @@ import javax.inject.Inject
 
 class MyReportsViewModel @Inject constructor(
     getMyReportsUseCase: GetMyReportsUseCase,
+    authRepository: AuthRepository,
     private val syncReportsUseCase: SyncReportsUseCase,
     private val updateReportStatusUseCase: UpdateReportStatusUseCase,
     private val deleteReportUseCase: DeleteReportUseCase,
 ) : ViewModel() {
+
+    val canResolve: Boolean = authRepository.currentSession()?.role == ADMIN_ROLE
 
     val reports: StateFlow<List<Report>> = getMyReportsUseCase()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -34,5 +38,9 @@ class MyReportsViewModel @Inject constructor(
 
     fun deleteReport(reportId: String) {
         viewModelScope.launch { deleteReportUseCase(reportId) }
+    }
+
+    private companion object {
+        const val ADMIN_ROLE = "ADMIN"
     }
 }

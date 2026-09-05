@@ -1,12 +1,12 @@
 package com.topit.ecotrace.presentation.navigation
 
-sealed class Screen(val route: String, val title: String) {
-    data object Map : Screen("map", "Карта")
-    data object MyReports : Screen("my_reports", "Мои отчеты")
-    data object Profile : Screen("profile", "Профиль")
-    data object Login : Screen("login", "Вход")
-    data object Register : Screen("register", "Регистрация")
-    data object AddReport : Screen("add_report?lat={lat}&lon={lon}", "Добавить") {
+sealed class Screen(val route: String) {
+    data object Map : Screen("map")
+    data object MyReports : Screen("my_reports")
+    data object Profile : Screen("profile")
+    data object Login : Screen("login")
+    data object Register : Screen("register")
+    data object AddReport : Screen("add_report?lat={lat}&lon={lon}") {
         fun createRoute(lat: Double? = null, lon: Double? = null): String {
             return if (lat != null && lon != null) {
                 "add_report?lat=$lat&lon=$lon"
@@ -15,12 +15,12 @@ sealed class Screen(val route: String, val title: String) {
             }
         }
     }
-    data object ReportDetails : Screen("report_details/{reportId}", "Детали") {
+    data object ReportDetails : Screen("report_details/{reportId}") {
         fun createRoute(reportId: String): String = "report_details/$reportId"
     }
-    data object Filters : Screen("filters", "Фильтры")
-    data object LocationPicker : Screen("location_picker?lat={lat}&lon={lon}", "Выбор точки") {
+    data object Filters : Screen("filters")
+    data object LocationPicker : Screen("location_picker?lat={lat}&lon={lon}") {
         fun createRoute(lat: Double, lon: Double): String = "location_picker?lat=$lat&lon=$lon"
     }
-    data object Settings : Screen("settings", "Настройки")
+    data object Settings : Screen("settings")
 }

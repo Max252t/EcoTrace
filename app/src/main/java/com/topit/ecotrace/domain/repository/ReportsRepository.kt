@@ -11,4 +11,5 @@ interface ReportsRepository {
     suspend fun updateStatus(id: String, status: ReportStatus)
     suspend fun deleteReport(id: String)
     suspend fun syncPending()
+    suspend fun clearLocal()
 }

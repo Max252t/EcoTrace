@@ -257,6 +257,10 @@ private class FakeAchievementsDao : AchievementsDao {
     override suspend fun getUnsynced(userId: String): List<AchievementEntity> =
         rows.value.filter { it.userId == userId && !it.synced }
 
+    override suspend fun clear() {
+        rows.value = emptyList()
+    }
+
     override suspend fun insertAll(achievements: List<AchievementEntity>) {
         val updated = rows.value.toMutableList()
         achievements.forEach { achievement ->
@@ -301,6 +305,7 @@ private class FakeReportsRepository(private val reports: List<Report>) : Reports
     override suspend fun updateStatus(id: String, status: ReportStatus) = Unit
     override suspend fun deleteReport(id: String) = Unit
     override suspend fun syncPending() = Unit
+    override suspend fun clearLocal() = Unit
 }
 
 private class FakeAuthRepository(private val session: AuthSession?) : AuthRepository {

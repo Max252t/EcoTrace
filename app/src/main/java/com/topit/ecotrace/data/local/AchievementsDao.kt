@@ -19,4 +19,7 @@ interface AchievementsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(achievements: List<AchievementEntity>)
+
+    @Query("DELETE FROM achievements")
+    suspend fun clear()
 }

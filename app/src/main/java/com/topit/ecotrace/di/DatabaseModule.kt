@@ -19,7 +19,11 @@ object DatabaseModule {
             EcoTraceDatabase::class.java,
             "ecotrace.db",
         )
-            .addMigrations(EcoTraceDatabase.MIGRATION_1_2, EcoTraceDatabase.MIGRATION_2_3)
+            .addMigrations(
+                EcoTraceDatabase.MIGRATION_1_2,
+                EcoTraceDatabase.MIGRATION_2_3,
+                EcoTraceDatabase.MIGRATION_3_4,
+            )
             .build()
     }
 

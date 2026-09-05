@@ -43,7 +43,7 @@ class ReportDetailsUiTest {
                         report = openReport(),
                         isLoading = false,
                         authorName = "Иван",
-                        canChangeStatus = true,
+                        availableStatuses = listOf(ReportStatus.OPEN, ReportStatus.IN_PROGRESS),
                         onStatusChange = { picked = it },
                     )
                 }
@@ -74,7 +74,7 @@ class ReportDetailsUiTest {
                         report = openReport(),
                         isLoading = false,
                         authorName = "Мария",
-                        canChangeStatus = false,
+                        availableStatuses = emptyList(),
                         onStatusChange = {},
                     )
                 }

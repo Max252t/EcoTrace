@@ -26,7 +26,6 @@ class OfflineFirstReportsRepository @Inject constructor(
 
     override suspend fun createReport(report: Report) {
         reportsDao.insert(report.toEntity(synced = false))
-        syncPending()
     }
 
     override suspend fun updateStatus(id: String, status: ReportStatus) {
@@ -47,19 +46,32 @@ class OfflineFirstReportsRepository @Inject constructor(
             unsynced.map { it.id }.toSet()
 
         val remoteReports = remoteDataSource.fetchReports()
-            .filterNot { it.id in locallyChangedIds }
-        if (remoteReports.isNotEmpty()) {
-            reportsDao.insertAll(remoteReports.map { it.toEntity(synced = true) })
+        if (remoteReports != null) {
+            val fresh = remoteReports.filterNot { it.id in locallyChangedIds }
+            if (fresh.isNotEmpty()) {
+                reportsDao.insertAll(fresh.map { it.toEntity(synced = true, uploaded = true) })
+            }
+
+            val keptIds = remoteReports.map { it.id } + locallyChangedIds
+            if (keptIds.isEmpty()) {
+                reportsDao.deleteAllFromServer()
+            } else {
+                reportsDao.deleteMissingOnServer(keptIds)
+            }
         }
 
         if (unsynced.isEmpty()) return
 
         unsynced.forEach { entity ->
             val report = entity.toDomain()
-            val synced = when (remoteDataSource.updateStatus(report.id, report.status.name)) {
-                StatusUpdateResult.UPDATED -> true
-                StatusUpdateResult.NOT_FOUND -> uploadReport(report)
-                StatusUpdateResult.FAILED -> false
+            val synced = if (entity.uploaded) {
+                when (remoteDataSource.updateStatus(report.id, report.status.name)) {
+                    StatusUpdateResult.UPDATED -> true
+                    StatusUpdateResult.NOT_FOUND -> uploadReport(report)
+                    StatusUpdateResult.FAILED -> false
+                }
+            } else {
+                uploadReport(report)
             }
 
             if (synced) {
@@ -68,9 +80,13 @@ class OfflineFirstReportsRepository @Inject constructor(
         }
     }
 
+    override suspend fun clearLocal() {
+        reportsDao.clear()
+    }
+
     private suspend fun uploadReport(report: Report): Boolean {
         val created = remoteDataSource.createReport(report) ?: return false
-        reportsDao.insert(created.toEntity(synced = true))
+        reportsDao.insert(created.toEntity(synced = true, uploaded = true))
         if (created.id != report.id) {
             reportsDao.deleteById(report.id)
         }

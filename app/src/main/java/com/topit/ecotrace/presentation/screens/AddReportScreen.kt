@@ -73,9 +73,13 @@ import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.google.android.gms.location.LocationServices
 import com.topit.ecotrace.domain.model.ProblemType
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.topit.ecotrace.presentation.viewmodel.AddReportState
 import com.topit.ecotrace.presentation.viewmodel.AddReportViewModel
 import com.topit.ecotrace.presentation.viewmodel.daggerViewModel
 import com.topit.ecotrace.ui.LocalAppStrings
+
+private const val CAMERA_CACHE_TTL_MS = 24 * 60 * 60 * 1000L
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -95,8 +99,13 @@ fun AddReportScreen(
     var selectedType by remember { mutableStateOf(ProblemType.DUMP) }
     var title by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var sessionExpired by remember { mutableStateOf(false) }
+    var selectedImageUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    var titleMissing by rememberSaveable { mutableStateOf(false) }
+    val saveState by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(saveState) {
+        if (saveState == AddReportState.SAVED) onBack()
+    }
 
     // Temp URI for TakePicture — created before launching camera
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -131,7 +140,7 @@ fun AddReportScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (granted) fetchMyLocation(fusedLocationClient) { lat, lon ->
+        if (granted) centerOnUser(fusedLocationClient) { lat, lon ->
             reportLat = lat; reportLon = lon
         }
     }
@@ -242,7 +251,7 @@ fun AddReportScreen(
                         Spacer(Modifier.height(6.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                            Text("Фото выбрано", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                            Text(s.photoSelected, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -321,7 +330,7 @@ fun AddReportScreen(
                                 val ok = ContextCompat.checkSelfPermission(
                                     context, Manifest.permission.ACCESS_FINE_LOCATION,
                                 ) == PackageManager.PERMISSION_GRANTED
-                                if (ok) fetchMyLocation(fusedLocationClient) { lat, lon ->
+                                if (ok) centerOnUser(fusedLocationClient) { lat, lon ->
                                     reportLat = lat; reportLon = lon
                                 } else permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
                             },
@@ -343,9 +352,16 @@ fun AddReportScreen(
                     }
                 }
 
-                if (sessionExpired) {
+                if (saveState == AddReportState.SESSION_EXPIRED) {
                     Text(
                         s.sessionExpired,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (titleMissing) {
+                    Text(
+                        s.titleRequired,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -353,16 +369,20 @@ fun AddReportScreen(
 
                 // ── Submit ────────────────────────────────────────────────────
                 Button(
+                    enabled = saveState == AddReportState.IDLE ||
+                        saveState == AddReportState.SESSION_EXPIRED,
                     onClick = {
-                        val created = viewModel.createDraftReport(
-                            title = title.ifBlank { s.addReportTitle },
-                            description = description.ifBlank { "—" },
-                            type = selectedType,
-                            latitude = reportLat,
-                            longitude = reportLon,
-                            imageUri = selectedImageUri?.toString(),
-                        )
-                        if (created) onBack() else sessionExpired = true
+                        titleMissing = title.isBlank()
+                        if (!titleMissing) {
+                            viewModel.createDraftReport(
+                                title = title.trim(),
+                                description = description.trim(),
+                                type = selectedType,
+                                latitude = reportLat,
+                                longitude = reportLon,
+                                imageUri = selectedImageUri?.toString(),
+                            )
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -382,16 +402,9 @@ fun AddReportScreen(
 
 private fun createCameraImageUri(context: android.content.Context): Uri {
     val imagesDir = File(context.cacheDir, "images").apply { mkdirs() }
+    imagesDir.listFiles()
+        ?.filter { System.currentTimeMillis() - it.lastModified() > CAMERA_CACHE_TTL_MS }
+        ?.forEach { it.delete() }
     val imageFile = File.createTempFile("photo_", ".jpg", imagesDir)
     return FileProvider.getUriForFile(context, "${context.packageName}.provider", imageFile)
-}
-
-@SuppressLint("MissingPermission")
-private fun fetchMyLocation(
-    fusedLocationClient: com.google.android.gms.location.FusedLocationProviderClient,
-    onLocation: (Double, Double) -> Unit,
-) {
-    fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-        if (location != null) onLocation(location.latitude, location.longitude)
-    }
 }

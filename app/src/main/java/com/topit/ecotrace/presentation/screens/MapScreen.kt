@@ -106,6 +106,7 @@ fun MapScreen(
         YandexMapComposable(
             reports = reports,
             cameraTarget = cameraTarget,
+            onCameraMoved = { cameraTarget = null },
             userLocation = userLocation,
             onMapLongTap = { point -> onAddClick(point.latitude, point.longitude) },
             onReportClick = onReportClick,
