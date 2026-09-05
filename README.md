@@ -122,9 +122,14 @@ cp local.properties.example local.properties
 - `http://<host-lan-ip>:8080/` for a physical device on the same network
 - `https://<your-domain>/` for a deployed server
 
-Cleartext HTTP is allowed only in debug builds and only for `10.0.2.2`, `localhost` and `127.0.0.1`
-(`app/src/debug/res/xml/network_security_config.xml`). A release build talks HTTPS only. To test a
-debug build against a backend on the LAN, add that address to the debug network security config.
+Cleartext HTTP is permitted in debug builds only
+(`app/src/debug/res/xml/network_security_config.xml`), so a debug build reaches a local backend at any
+address — the emulator alias `10.0.2.2`, a loopback port forwarded with `adb reverse`, or the LAN
+address of the development machine. A release build talks HTTPS only
+(`app/src/main/res/xml/network_security_config.xml`).
+
+On a physical device `10.0.2.2` does not exist: use the machine LAN address, or forward the port over
+USB with `adb reverse tcp:8080 tcp:8080` and point `backend.base.url` at `http://127.0.0.1:8080/`.
 
 Release builds run R8 with `isMinifyEnabled` and resource shrinking; the keep rules for the Retrofit
 DTOs live in `app/proguard-rules.pro`.
