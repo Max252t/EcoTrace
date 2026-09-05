@@ -7,6 +7,7 @@ import com.ecotrace.backend.domain.model.Report
 import com.ecotrace.backend.domain.model.ReportStatus
 import com.ecotrace.backend.domain.repository.ReportsRepository
 import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.andWhere
 import org.jetbrains.exposed.sql.deleteWhere
@@ -17,11 +18,20 @@ import java.time.Instant
 
 class ReportsRepositoryImpl : ReportsRepository {
 
-    override suspend fun getAll(type: ProblemType?, status: ReportStatus?): List<Report> = dbQuery {
+    override suspend fun getAll(
+        type: ProblemType?,
+        status: ReportStatus?,
+        limit: Int,
+        offset: Long,
+    ): List<Report> = dbQuery {
         var query = ReportsTable.selectAll()
         if (type != null) query = query.andWhere { ReportsTable.type eq type.name }
         if (status != null) query = query.andWhere { ReportsTable.status eq status.name }
-        query.map(::rowToReport)
+        query
+            .orderBy(ReportsTable.createdAt to SortOrder.DESC)
+            .limit(limit)
+            .offset(offset)
+            .map(::rowToReport)
     }
 
     override suspend fun getById(id: String): Report? = dbQuery {

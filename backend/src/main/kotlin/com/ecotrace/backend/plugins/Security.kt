@@ -1,7 +1,5 @@
 package com.ecotrace.backend.plugins
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.algorithms.Algorithm
 import com.ecotrace.backend.auth.JwtConfig
 import io.ktor.server.application.Application
 import io.ktor.server.auth.authentication
@@ -12,12 +10,7 @@ fun Application.configureSecurity(jwtConfig: JwtConfig) {
     authentication {
         jwt("auth-jwt") {
             realm = jwtConfig.realm
-            verifier(
-                JWT.require(Algorithm.HMAC256(jwtConfig.secret))
-                    .withAudience(jwtConfig.audience)
-                    .withIssuer(jwtConfig.issuer)
-                    .build(),
-            )
+            verifier(jwtConfig.verifier())
             validate { credential ->
                 if (credential.payload.getClaim("userId").asString() != null) {
                     JWTPrincipal(credential.payload)

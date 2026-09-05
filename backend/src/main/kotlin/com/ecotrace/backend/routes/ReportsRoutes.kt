@@ -2,12 +2,14 @@ package com.ecotrace.backend.routes
 
 import com.ecotrace.backend.data.storage.FileStorage
 import com.ecotrace.backend.domain.model.CreateReportRequest
+import com.ecotrace.backend.domain.model.Limits
 import com.ecotrace.backend.domain.model.ProblemType
 import com.ecotrace.backend.domain.model.Report
 import com.ecotrace.backend.domain.model.ReportStatus
 import com.ecotrace.backend.domain.model.UpdateStatusRequest
 import com.ecotrace.backend.domain.model.toResponse
 import com.ecotrace.backend.domain.repository.ReportsRepository
+import com.ecotrace.backend.domain.repository.UploadsRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
@@ -24,24 +26,32 @@ import io.ktor.server.routing.route
 import java.time.Instant
 import java.util.UUID
 
+private const val ADMIN_ROLE = "ADMIN"
+
+private val AUTHOR_STATUSES = setOf(ReportStatus.OPEN, ReportStatus.IN_PROGRESS)
+
 fun Route.reportsRoutes(
     reportsRepository: ReportsRepository,
+    uploadsRepository: UploadsRepository,
     fileStorage: FileStorage,
 ) {
     route("/api/reports") {
 
-        // GET /api/reports?type=DUMP&status=OPEN  — публичный
         get {
             val type = call.request.queryParameters["type"]
                 ?.let { runCatching { ProblemType.valueOf(it) }.getOrNull() }
             val status = call.request.queryParameters["status"]
                 ?.let { runCatching { ReportStatus.valueOf(it) }.getOrNull() }
 
-            val reports = reportsRepository.getAll(type, status)
+            val limit = call.request.queryParameters["limit"]?.toIntOrNull()
+                ?.coerceIn(1, Limits.PAGE_SIZE_MAX)
+                ?: Limits.PAGE_SIZE_DEFAULT
+            val offset = call.request.queryParameters["offset"]?.toLongOrNull()?.coerceAtLeast(0) ?: 0
+
+            val reports = reportsRepository.getAll(type, status, limit, offset)
             call.respond(reports.map { it.toResponse() })
         }
 
-        // GET /api/reports/{id}  — публичный
         get("{id}") {
             val id = call.parameters["id"] ?: return@get call.respond(HttpStatusCode.BadRequest)
             val report = reportsRepository.getById(id)
@@ -49,10 +59,8 @@ fun Route.reportsRoutes(
             call.respond(report.toResponse())
         }
 
-        // Защищённые роуты
         authenticate("auth-jwt") {
 
-            // POST /api/reports
             post {
                 val userId = call.principal<JWTPrincipal>()?.getClaim("userId", String::class)
                     ?: return@post call.respond(HttpStatusCode.Unauthorized)
@@ -65,16 +73,52 @@ fun Route.reportsRoutes(
                         mapOf("error" to "Unknown type: ${request.type}"),
                     )
 
+                val title = request.title.trim()
+                val description = request.description.trim()
+
+                if (title.isEmpty() || title.length > Limits.TITLE_MAX) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Title must be 1..${Limits.TITLE_MAX} characters"),
+                    )
+                }
+                if (description.length > Limits.DESCRIPTION_MAX) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Description is too long"),
+                    )
+                }
+                if (!Limits.isLatitude(request.latitude) || !Limits.isLongitude(request.longitude)) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Coordinates are out of range"),
+                    )
+                }
+
+                val requestedImage = request.imageUrl?.trim()?.takeIf { it.isNotEmpty() }
+                var imageUrl: String? = null
+                if (requestedImage != null) {
+                    val name = FileStorage.nameFromUrl(requestedImage)
+                        ?: FileStorage.nameFromUrl(FileStorage.urlFor(requestedImage))
+                    if (name == null || uploadsRepository.ownerOf(name) != userId) {
+                        return@post call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "Unknown image; upload it with POST /api/files first"),
+                        )
+                    }
+                    imageUrl = FileStorage.urlFor(name)
+                }
+
                 val now = Instant.now()
                 val report = Report(
                     id = UUID.randomUUID().toString(),
-                    title = request.title.trim(),
-                    description = request.description.trim(),
+                    title = title,
+                    description = description,
                     type = type,
                     status = ReportStatus.OPEN,
                     latitude = request.latitude,
                     longitude = request.longitude,
-                    imageUrl = request.imageUrl,
+                    imageUrl = imageUrl,
                     authorId = userId,
                     createdAt = now,
                     updatedAt = now,
@@ -83,7 +127,6 @@ fun Route.reportsRoutes(
                 call.respond(HttpStatusCode.Created, created.toResponse())
             }
 
-            // PATCH /api/reports/{id}/status
             patch("{id}/status") {
                 val id = call.parameters["id"] ?: return@patch call.respond(HttpStatusCode.BadRequest)
                 val userId = call.principal<JWTPrincipal>()?.getClaim("userId", String::class)
@@ -93,8 +136,8 @@ fun Route.reportsRoutes(
                 val existing = reportsRepository.getById(id)
                     ?: return@patch call.respond(HttpStatusCode.NotFound, mapOf("error" to "Not found"))
 
-                // только автор или ADMIN могут менять статус
-                if (existing.authorId != userId && role != "ADMIN") {
+                val isAdmin = role == ADMIN_ROLE
+                if (existing.authorId != userId && !isAdmin) {
                     return@patch call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Access denied"))
                 }
 
@@ -105,12 +148,18 @@ fun Route.reportsRoutes(
                         mapOf("error" to "Unknown status: ${request.status}"),
                     )
 
+                if (!isAdmin && newStatus !in AUTHOR_STATUSES) {
+                    return@patch call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only an administrator can resolve a report"),
+                    )
+                }
+
                 val updated = reportsRepository.updateStatus(id, newStatus)
                     ?: return@patch call.respond(HttpStatusCode.NotFound)
                 call.respond(updated.toResponse())
             }
 
-            // DELETE /api/reports/{id}
             delete("{id}") {
                 val id = call.parameters["id"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
                 val userId = call.principal<JWTPrincipal>()?.getClaim("userId", String::class)
@@ -120,18 +169,20 @@ fun Route.reportsRoutes(
                 val existing = reportsRepository.getById(id)
                     ?: return@delete call.respond(HttpStatusCode.NotFound, mapOf("error" to "Not found"))
 
-                if (existing.authorId != userId && role != "ADMIN") {
+                if (existing.authorId != userId && role != ADMIN_ROLE) {
                     return@delete call.respond(HttpStatusCode.Forbidden, mapOf("error" to "Access denied"))
                 }
 
                 reportsRepository.delete(id)
-                fileStorage.delete(existing.imageUrl)
+                FileStorage.nameFromUrl(existing.imageUrl)?.let { name ->
+                    fileStorage.delete(existing.imageUrl)
+                    uploadsRepository.delete(name)
+                }
                 call.respond(HttpStatusCode.NoContent)
             }
         }
     }
 
-    // GET /api/users/{userId}/reports
     authenticate("auth-jwt") {
         get("/api/users/me/reports") {
             val userId = call.principal<JWTPrincipal>()?.getClaim("userId", String::class)

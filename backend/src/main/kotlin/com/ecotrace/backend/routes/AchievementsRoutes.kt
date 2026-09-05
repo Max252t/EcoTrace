@@ -7,6 +7,7 @@ import com.ecotrace.backend.domain.model.SyncAchievementsRequest
 import com.ecotrace.backend.domain.model.toResponse
 import com.ecotrace.backend.domain.repository.AchievementsRepository
 import com.ecotrace.backend.domain.repository.ReportsRepository
+import com.ecotrace.backend.domain.repository.UsersRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.auth.authenticate
@@ -23,6 +24,7 @@ import java.time.Instant
 fun Route.achievementsRoutes(
     achievementsRepository: AchievementsRepository,
     reportsRepository: ReportsRepository,
+    usersRepository: UsersRepository,
 ) {
     authenticate("auth-jwt") {
         route("/api/achievements") {
@@ -64,6 +66,7 @@ fun Route.achievementsRoutes(
                     claimed = claimed,
                     eligible = eligible,
                     now = Instant.now(),
+                    notBefore = usersRepository.findById(userId)?.createdAt ?: Instant.EPOCH,
                 )
 
                 val changed = merged.filter { achievement ->
